@@ -1,0 +1,10 @@
+{
+  "name": "agri-predict-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node dashboard/server.mjs",
+    "test:dashboard": "node --test dashboard/*.test.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#125b45">
+  <title>농산물 가격예측 · 성능 대시보드</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 이동</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="농산물 가격예측 홈">
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M9 22C8 12 14 8 24 8c0 10-5 15-15 14Zm0 0 11-10" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span>농산물 가격예측<span class="brand-sub">RESEARCH DASHBOARD</span></span>
+    </a>
+    <div class="header-right"><span class="status-dot"></span><span>로컬 데이터</span><span class="tag">연구용</span></div>
+  </header>
+  <main id="main">
+    <section class="intro">
+      <div><p class="eyebrow">예측 성능 살펴보기</p><h1>가격 예측, 실제와 나란히.</h1><p class="intro-copy">품목과 예측 시점을 바꿔, 예상 가격이 실제 거래가격과 얼마나 가까웠는지 확인하세요.</p></div>
+      <button class="button secondary" id="export" disabled><span aria-hidden="true">↓</span> 평가 결과 내려받기</button>
+    </section>
+    <div id="loading" class="loading" role="status">수집된 가격과 예측 결과를 불러오고 있습니다…</div>
+    <section id="error" class="error-box" hidden aria-live="polite"><h2>평가 데이터를 불러오지 못했습니다</h2><p id="error-message"></p><button id="retry" class="button">다시 불러오기</button></section>
+    <div id="workspace" hidden>
+      <aside class="research-note"><span class="note-symbol" aria-hidden="true">i</span><div><strong>과거를 학습하고, 다음 날의 실제가격으로 평가합니다.</strong><p>가락·강서 경매자료로 학습한 모델의 2015년 순차 평가입니다. 현재 수정본을 사용한 초기 실험이며, 전국 대표가격·공모전 공식 성능과는 구분됩니다.</p></div><span class="note-chip">후향적 평가</span></aside>
+      <nav class="products" id="products" aria-label="조회 품목"></nav>
+      <section class="analysis-panel" aria-labelledby="chart-title">
+        <div class="panel-heading"><div><p class="eyebrow" id="scope-caption">가락 · 강서 / 경매 / 원·kg</p><h2 id="chart-title">배추 가격 흐름</h2></div><div class="model-pill"><span class="status-dot"></span><span id="model-badge">학습모델</span></div></div>
+        <div class="model-controls"><label>예측 모델<select id="model"><option value="ridge">Ridge 회귀</option><option value="hist_gb">부스팅 트리</option><option value="baseline">직전가격 기준모델</option></select></label><label>재학습 주기<select id="cadence"><option value="daily">매일</option><option value="weekly">매주</option><option value="monthly">매월</option><option value="seasonal">매계절</option></select></label><p id="training-caption">2014년부터 학습 · 새 정답이 알려진 뒤 다음 학습에 반영</p></div>
+        <form id="filters" class="filters">
+          <label>예측 시점<select id="horizon" name="horizon"></select></label>
+          <fieldset class="group-field"><legend>차트 단위</legend><div class="segmented" id="granularity"><button type="button" data-unit="day" aria-pressed="true">일</button><button type="button" data-unit="week" aria-pressed="false">주</button><button type="button" data-unit="month" aria-pressed="false">월</button><button type="button" data-unit="quarter" aria-pressed="false">분기</button></div></fieldset>
+          <div class="date-controls"><label>조회 시작<input type="date" id="start" required></label><span class="date-divider" aria-hidden="true">—</span><label>조회 종료<input type="date" id="end" required></label><label class="period-label">빠른 선택<select id="period"><option value="year">평가기간 1년</option><option value="half">마지막 6개월</option><option value="quarter">마지막 3개월</option><option value="custom">직접 선택</option></select></label></div>
+        </form>
+        <div class="replay"><div class="replay-label"><strong>하루씩 평가하기</strong><span id="asof-label"></span></div><input id="asof" type="range" min="0" max="364" value="364" aria-label="평가 진행일"><button type="button" id="replay-start">처음부터</button><button type="button" id="replay-next">하루 진행 →</button></div>
+        <p id="filter-error" class="filter-error" role="alert" hidden></p>
+        <div id="results">
+          <div class="metrics" id="metrics" aria-live="polite"></div>
+          <div class="chart-header"><div class="legend"><span><i class="line actual"></i>실제가격</span><span><i class="line predicted"></i>예측가격</span></div><label class="interval-option" title="현재 실험은 검증된 예측범위를 제공하지 않습니다"><input type="checkbox" disabled>예상 가격 범위 <span>준비 전</span></label></div>
+          <div id="chart-wrap" class="chart-wrap"><svg id="price-chart" role="img" aria-labelledby="svg-title svg-description" viewBox="0 0 1120 330"></svg><div id="tooltip" class="tooltip" hidden></div><div id="chart-empty" class="chart-empty" hidden>선택한 기간에 표시할 실제가격이 없습니다.<br>조회기간을 변경해 주세요.</div></div>
+          <div class="chart-footer"><p id="chart-caption"></p><span>실선: 실제 · 점선: 예측</span></div>
+          <p class="coverage-note" id="coverage-note"></p>
+        </div>
+      </section>
+      <section class="lower-grid">
+        <article class="insight-panel"><p class="eyebrow">예측을 읽는 방법</p><h2>이 예측은 무엇을 보고 있나요?</h2><div class="driver"><span class="driver-number">01</span><div><h3 id="driver-title">과거 가격·거래량과 달력 정보</h3><p id="model-description"></p></div></div><p class="muted" id="feature-note">외부 기상·수입·생산자료와 변수 기여도 검증은 다음 실험 단계입니다. 현재 모델로 가격 변화의 원인을 단정하지 않습니다.</p><div id="baseline-comparison" class="comparison-note"></div><details><summary>자료 범위와 해석 시 주의사항</summary><ul id="limitations"></ul><div id="sources" class="source-links"></div></details></article>
+        <article class="table-panel"><div class="table-heading"><div><p class="eyebrow">날짜별로 비교하기</p><h2>최근 평가 결과</h2></div><span class="muted">선택 기간 중 최근 8건</span></div><div class="table-scroll"><table><caption class="sr-only">예측 기준일, 대상일, 실제가격, 예측가격 및 차이</caption><thead><tr><th scope="col">대상일<small>예측 기준일</small></th><th scope="col">실제가격</th><th scope="col">예측가격</th><th scope="col">차이<small>예측 − 실제</small></th></tr></thead><tbody id="prediction-rows"></tbody></table></div><p class="table-footnote">가격 단위는 원/kg입니다. 차이가 +이면 실제보다 높게 예측한 것입니다.</p></article>
+      </section>
+      <section class="evaluation-panel"><div class="table-heading"><div><p class="eyebrow">새 실제가격이 들어올 때마다 갱신</p><h2>기간별 예측 성능</h2></div><label>평가 집계<select id="evaluation-unit"><option value="day">일별</option><option value="week">주별</option><option value="month" selected>월별</option><option value="season">계절별</option></select></label></div><p class="muted">기간별로 일별 예측오차를 모아 계산합니다. 차트의 가격 평균과는 다른 성능 집계입니다. 겨울은 12~2월이며 평가기간에 포함된 날짜만 반영합니다.</p><div class="table-scroll"><table><thead><tr><th>평가기간</th><th>평가일 수</th><th>MAE <small>원/kg</small></th><th>MAPE <small>%</small></th><th>RMSE <small>원/kg</small></th></tr></thead><tbody id="evaluation-rows"></tbody></table></div><p class="table-footnote" id="evaluation-footnote"></p></section>
+      <footer class="footer"><span>농산물 가격예측 연구 · 전국 대표가격이 아닌 수집된 두 시장의 잠정 집계</span><span id="updated"></span></footer>
+    </div>
+  </main>
+</body>
+</html>
