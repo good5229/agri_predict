@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agri-data-collector"
+version = "0.1.0"
+description = "Offline-first public agricultural data collector and validator"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+agri-data = "agri_data.collector:main"
+
+[tool.setuptools.packages.find]
+include = ["agri_data*"]
