@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "purpose": "Manually verified publication vintages; separate from current API observations, not a complete historical release calendar.",
+  "retrieved_on": "2026-09-28",
+  "retrieval_date_timezone": "Asia/Seoul",
+  "geographic_scope": "Republic of Korea, national totals",
+  "verification": "Official PDF covers and cited data pages visually inspected. Public release time is used, not the earlier distribution time.",
+  "documents": [
+    {
+      "id": "area-2014-garlic-onion",
+      "publisher_at_release": "통계청",
+      "title": "2014년 마늘, 양파 재배면적 조사 결과",
+      "url": "https://mods.go.kr/boardDownload.es?bid=229&list_no=313407&seq=1",
+      "local_path": "data/reference/area-2014-garlic-onion.pdf",
+      "sha256": "76d88b1848e667db35fcd372fba8c344e740ad3a68e0c31277f7d380293261c7",
+      "published_at": "2014-04-29T12:00:00+09:00",
+      "published_at_precision": "minute",
+      "publication_evidence_pdf_page": 1,
+      "observations": [
+        {"reference_year": 2014, "crop": "garlic_all", "measure": "cultivated_area", "value": 25062, "unit": "ha", "pdf_page": 5},
+        {"reference_year": 2014, "crop": "onion", "measure": "cultivated_area", "value": 23908, "unit": "ha", "pdf_page": 5}
+      ]
+    },
+    {
+      "id": "production-2014-garlic-onion",
+      "publisher_at_release": "통계청",
+      "title": "2014년 보리, 마늘, 양파 생산량 조사 결과",
+      "url": "https://mods.go.kr/boardDownload.es?bid=228&list_no=328729&seq=5",
+      "local_path": "data/reference/production-2014-garlic-onion.pdf",
+      "sha256": "1cf7e6fc7106ec99458c3da7a3b2ac140d278eeb6190cc0c6a2f3b063e8cb4aa",
+      "published_at": "2014-07-25T12:00:00+09:00",
+      "published_at_precision": "minute",
+      "publication_evidence_pdf_page": 1,
+      "observations": [
+        {"reference_year": 2014, "crop": "garlic_all", "measure": "production", "value": 353761, "unit": "tonne", "pdf_page": 5},
+        {"reference_year": 2014, "crop": "onion", "measure": "production", "value": 1589957, "unit": "tonne", "pdf_page": 5},
+        {"reference_year": 2014, "crop": "garlic_all", "measure": "cultivated_area", "value": 25062, "unit": "ha", "pdf_page": 20},
+        {"reference_year": 2014, "crop": "onion", "measure": "cultivated_area", "value": 23911, "unit": "ha", "pdf_page": 20}
+      ]
+    },
+    {
+      "id": "production-2015-garlic-onion",
+      "publisher_at_release": "통계청",
+      "title": "2015년 보리, 마늘, 양파 생산량 조사 결과",
+      "url": "https://mods.go.kr/boardDownload.es?bid=228&list_no=347566&seq=1",
+      "local_path": "data/reference/production-2015-garlic-onion.pdf",
+      "sha256": "d4f12903ffb00d93b1049a0414249fffb8373f232ba4788246c1646df730c90f",
+      "published_at": "2015-07-24T12:00:00+09:00",
+      "published_at_precision": "minute",
+      "publication_evidence_pdf_page": 1,
+      "observations": [
+        {"reference_year": 2015, "crop": "garlic_all", "measure": "production", "value": 266272, "unit": "tonne", "pdf_page": 4},
+        {"reference_year": 2015, "crop": "onion", "measure": "production", "value": 1093932, "unit": "tonne", "pdf_page": 4}
+      ]
+    },
+    {
+      "id": "production-2014-pepper",
+      "publisher_at_release": "통계청",
+      "title": "2014년 고추, 참깨 생산량 조사결과",
+      "url": "https://mods.go.kr/boardDownload.es?bid=228&list_no=332276&seq=2",
+      "local_path": "data/reference/production-2014-pepper.pdf",
+      "sha256": "7765daede8b91da5bb869274a0ffce2bec065e091574d27f222fff3e7e369d2f",
+      "published_at": "2014-11-25T12:00:00+09:00",
+      "published_at_precision": "minute",
+      "publication_evidence_pdf_page": 1,
+      "observations": [
+        {"reference_year": 2014, "crop": "pepper", "source_crop_label": "고추", "measure": "production", "value": 85068, "unit": "tonne", "pdf_page": 10},
+        {"reference_year": 2014, "crop": "pepper", "source_crop_label": "고추", "measure": "cultivated_area", "value": 36120, "unit": "ha", "pdf_page": 10}
+      ]
+    },
+    {
+      "id": "production-2014-fall-cabbage-radish",
+      "publisher_at_release": "통계청",
+      "title": "2014년 가을배추·무, 콩, 사과, 배 생산량 조사결과 보도자료",
+      "url": "https://mods.go.kr/boardDownload.es?bid=228&list_no=332702&seq=9",
+      "local_path": "data/reference/production-2014-fall-cabbage-radish.pdf",
+      "sha256": "e979986c38779dce340c53a21c3362e96d4127759fb40ae9272278101d67e726",
+      "published_at": "2014-12-22T12:00:00+09:00",
+      "published_at_precision": "minute",
+      "publication_evidence_pdf_page": 1,
+      "observations": [
+        {"reference_year": 2014, "crop": "cabbage", "season": "autumn", "measure": "production", "value": 1698, "unit": "thousand_tonnes", "pdf_page": 6},
+        {"reference_year": 2014, "crop": "radish", "season": "autumn", "measure": "production", "value": 482, "unit": "thousand_tonnes", "pdf_page": 6},
+        {"reference_year": 2014, "crop": "cabbage", "season": "autumn", "measure": "cultivated_area", "value": 15233, "unit": "ha", "pdf_page": 6},
+        {"reference_year": 2014, "crop": "radish", "season": "autumn", "measure": "cultivated_area", "value": 5498, "unit": "ha", "pdf_page": 6}
+      ]
+    }
+  ],
+  "interpretation_limits": [
+    "An official PDF's declared public release time establishes the documented schedule; historical website upload/access logs have not been recovered.",
+    "Values in each PDF are separate vintages at the printed precision. Do not backdate full-precision current KOSIS values using these timestamps.",
+    "The April and July 2014 onion area values differ by 3 ha. The reason for the difference is not established here.",
+    "Garlic production and area cover garlic as a crop, not exclusively peeled garlic.",
+    "Autumn cabbage and radish statistics are seasonal totals, not annual totals. Their printed thousand-tonne precision is preserved.",
+    "The pepper PDF labels the crop as 고추. Its production basis must be checked against the KOSIS series metadata before equating it with a particular wholesale dry-pepper product definition.",
+    "Before each publication time, the corresponding annual value is unavailable for historical prediction. No blanket fixed release lag is established.",
+    "KOSIS identifiers must include ORG_ID, TBL_ID, ITM_ID, region and period: ITM_ID alone is not unique across tables."
+  ]
+}

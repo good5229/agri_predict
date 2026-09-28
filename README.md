@@ -10,6 +10,8 @@
 
 수집기는 `python3 -m agri_data.collector --help`로 실행 방법을 확인한다. 실제 자료는 `data/agri.sqlite`에 보관하며, 기간·배치별 확보 결과와 품질 제한은 위 수집 실행 안내에 기록한다. Python 3.10 이상과 시스템 `curl`이 필요하고, 핵심 수집에는 추가 Python 패키지가 필요하지 않다.
 
+`python3 -m agri_data.coverage --db data/agri.sqlite`는 중복 수집 버전을 구분해 가격자료의 월별 확보 범위를 읽기 전용 JSON으로 출력한다. 과거 생산통계의 원문·발표시각·단위 근거는 [발표자료 목록](docs/publication-evidence.json)에 별도로 기록한다.
+
 ## 저장소와 데이터
 
 코드·기획·실행 설명은 Git으로 추적한다. 인증키, `.env`, `data/`, `runs/`, 대량 원응답 JSON은 추적하지 않는다. 데이터는 삭제되는 것이 아니라 로컬 DB에 별도로 남는다. 원격 저장소는 아직 설정하지 않았다. 나중에 사용자가 정한 원격 URL을 `origin`으로 등록해 업로드할 수 있다.
