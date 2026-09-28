@@ -1,0 +1,31 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+
+# Collected public data, immutable response evidence, generated reports
+/data/
+/runs/
+/outputs/
+/logs/
+/docs/data-feasibility-evidence.json
+
+# Python / editors
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+
