@@ -76,13 +76,14 @@ ORDER BY json_extract(p.query_json,'$."cond[trd_clcln_ymd::EQ]"'),
 """
 
 
-def _blank_product(product_id: str) -> dict[str, Any]:
+def _blank_product(product_id: str, evaluation_start: dt.date = EVALUATION_START,
+                   evaluation_end: dt.date = EVALUATION_END) -> dict[str, Any]:
     product = PRODUCTS[product_id]
     notes = [
         "수정본이 반영된 회고적 데이터입니다. API 응답의 최초 공개 시점은 확인할 수 없습니다.",
         "aT 원천에서 매매구분이 '경매'이고 단위명이 'kg'인 행만 사용합니다. 원산지 국산·수입은 필터링하지 않습니다.",
         "일별 가격은 부호를 유지한 총금액 합계(totprc) ÷ 총중량 합계(unit_tot_qty)로 계산합니다. 음수 조정도 반영합니다.",
-        "거래가 없는 날짜는 보간하지 않습니다. 2015년 실제 관측일만 평가 대상으로 삼습니다.",
+        f"거래가 없는 날짜는 보간하지 않습니다. {evaluation_start.isoformat()}~{evaluation_end.isoformat()} 실제 관측일만 평가 대상으로 삼습니다.",
         "학습하지 않은 지속성 기준선이며, 미래 운영용 예측은 아닙니다.",
     ]
     if product_id == "garlic":
@@ -194,9 +195,25 @@ def _parse_date(value: Any) -> dt.date | None:
         return None
 
 
-def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | None = None) -> dict[str, Any]:
+def _validate_date_ranges(context_start: dt.date, context_end: dt.date,
+                          evaluation_start: dt.date, evaluation_end: dt.date) -> None:
+    if context_start > context_end:
+        raise ValueError("context_start must not be after context_end")
+    if evaluation_start > evaluation_end:
+        raise ValueError("evaluation_start must not be after evaluation_end")
+    if evaluation_start < context_start or evaluation_end > context_end:
+        raise ValueError("evaluation range must be inside the exported context range")
+    if context_end > dt.date.today():
+        raise ValueError("context_end must not be a future date")
+
+
+def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | None = None, *,
+                    context_start: dt.date = START_DATE, context_end: dt.date = CONTEXT_END,
+                    evaluation_start: dt.date = EVALUATION_START,
+                    evaluation_end: dt.date = EVALUATION_END) -> dict[str, Any]:
     """Build a bounded retrospective dashboard from a read-only connection."""
-    products = {product_id: _blank_product(product_id) for product_id in PRODUCTS}
+    _validate_date_ranges(context_start, context_end, evaluation_start, evaluation_end)
+    products = {product_id: _blank_product(product_id, evaluation_start, evaluation_end) for product_id in PRODUCTS}
     row_buckets: dict[str, dict[dt.date, dict[str, Any]]] = {key: defaultdict(lambda: {"amount": Decimal(0), "volume": Decimal(0), "row_count": 0, "markets": set()}) for key in PRODUCTS}
     metadata: dict[str, dict[str, Any]] = {
         key: {"query_keys": set(), "request_ids": set(), "job_ids": set(), "source_urls": set(),
@@ -209,7 +226,7 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
     source_urls: set[str] = set()
     preferred_garlic_scopes: set[tuple[str, str, str]] = set()
 
-    for record in db.execute(PRICE_SQL, (START_DATE.isoformat(), CONTEXT_END.isoformat(), *MARKETS.keys())):
+    for record in db.execute(PRICE_SQL, (context_start.isoformat(), context_end.isoformat(), *MARKETS.keys())):
         query = _json_object(record["query_json"])
         product_id = _query_product(query or {})
         if product_id is None:
@@ -287,7 +304,7 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
             product["diagnostics"]["sourceDateMismatchRows"] += 1
             meta["excluded_rows"]["source_date_request_mismatch"] += 1
             continue
-        if source_day < START_DATE or source_day > CONTEXT_END:
+        if source_day < context_start or source_day > context_end:
             meta["excluded_rows"]["source_date_out_of_context"] += 1
             continue
 
@@ -323,8 +340,8 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
         status_counts: Counter = Counter()
         incomplete_days: set[str] = set()
         complete_days: set[str] = set()
-        for offset in range((CONTEXT_END - START_DATE).days + 1):
-            expected_day = START_DATE + dt.timedelta(days=offset)
+        for offset in range((context_end - context_start).days + 1):
+            expected_day = context_start + dt.timedelta(days=offset)
             day_text = expected_day.isoformat()
             invalid = 0
             for market_code in MARKETS:
@@ -377,7 +394,7 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
         diagnostics["excludedRows"] = dict(sorted(item_meta["excluded_rows"].items()))
         product["status"] = "sparse" if product_id == "pepper" and product["observations"] else ("available" if product["observations"] else "no_data")
 
-        targets = [day for day in obs_map if EVALUATION_START <= day <= EVALUATION_END]
+        targets = [day for day in obs_map if evaluation_start <= day <= evaluation_end]
         diagnostics["evaluationTargetDays"] = len(targets)
         count_by_horizon: Counter = Counter()
         missing_by_horizon: Counter = Counter()
@@ -415,12 +432,14 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
         "schemaVersion": 1,
         "generatedAt": generated_at or dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "meta": {
-            "title": "2015 도매시장 경매가격 지속성 기준선",
+            "title": f"{evaluation_start.isoformat()}~{evaluation_end.isoformat()} 도매시장 경매가격 지속성 기준선",
             "modelName": "직전 관측가격 기준선",
             "modelKind": "baseline",
             "modelDescription": "예측 원점 이전 또는 당일의 마지막 유효 일별 가격을 그대로 사용합니다. 학습은 수행하지 않았습니다.",
-            "evaluationStart": EVALUATION_START.isoformat(),
-            "evaluationEnd": EVALUATION_END.isoformat(),
+            "contextStart": context_start.isoformat(),
+            "contextEnd": context_end.isoformat(),
+            "evaluationStart": evaluation_start.isoformat(),
+            "evaluationEnd": evaluation_end.isoformat(),
             "dataStart": data_start,
             "dataEnd": data_end,
             "marketNames": [market_names.get(code, MARKETS[code]) for code in MARKETS],
@@ -431,7 +450,7 @@ def build_dashboard(db: sqlite3.Connection, db_path: str, generated_at: str | No
                 "매매구분이 '경매'이고 단위명이 'kg'인 행만 사용하며, 원산지 국산·수입은 필터링하지 않습니다.",
                 "가격은 시장별 합계금액/합계 kg로 계산한 뒤 두 시장의 금액과 중량을 합산해 일별 가중가격을 산출합니다.",
                 "예측 기준일과 원자료 날짜의 간격은 최대 14일입니다. 더 오래된 값만 있으면 예측하지 않습니다.",
-                "2015년 실제 관측일에 대해 1~10일(달력일 기준) 평가만 포함하며, 미래 운영 예측은 없습니다.",
+                f"{evaluation_start.isoformat()}~{evaluation_end.isoformat()} 실제 관측일에 대해 1~10일(달력일 기준) 평가만 포함하며, 미래 운영 예측은 없습니다.",
                 "거래가 없는 날은 보간하거나 휴장·가격 0으로 해석하지 않습니다. 건고추는 희소 시계열입니다.",
                 "각 품목·날짜별로 가락과 강서의 중분류 조회가 모두 정상 완료 또는 정상 0건이어야 관측치를 만들며, 미조회·실패 날짜는 제외합니다.",
             ],
@@ -484,13 +503,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export retrospective aT auction/kg persistence-baseline dashboard JSON.")
     parser.add_argument("--db", default="data/agri.sqlite", help="SQLite collector database (opened read-only)")
     parser.add_argument("--output", default="outputs/prices-dashboard.json", help="atomic JSON output path")
+    parser.add_argument("--context-start", type=dt.date.fromisoformat, default=START_DATE)
+    parser.add_argument("--context-end", type=dt.date.fromisoformat, default=CONTEXT_END)
+    parser.add_argument("--evaluation-start", type=dt.date.fromisoformat, default=EVALUATION_START)
+    parser.add_argument("--evaluation-end", type=dt.date.fromisoformat, default=EVALUATION_END)
     args = parser.parse_args(argv)
     db: sqlite3.Connection | None = None
     try:
+        _validate_date_ranges(args.context_start, args.context_end,
+                              args.evaluation_start, args.evaluation_end)
+        changed_range = (args.context_start, args.context_end, args.evaluation_start, args.evaluation_end) != (
+            START_DATE, CONTEXT_END, EVALUATION_START, EVALUATION_END)
+        if changed_range and Path(args.output).resolve() == Path("outputs/prices-dashboard.json").resolve():
+            raise ValueError("custom date ranges require a new --output path to preserve the 2015 export")
         if Path(args.db).resolve() == Path(args.output).resolve():
             raise ValueError("output path must differ from the read-only database path")
         db = coverage.open_readonly(args.db)
-        report = build_dashboard(db, args.db)
+        report = build_dashboard(db, args.db, context_start=args.context_start, context_end=args.context_end,
+                                 evaluation_start=args.evaluation_start, evaluation_end=args.evaluation_end)
         write_json_atomic(args.output, report)
     except (OSError, sqlite3.Error, ValueError) as exc:
         print(f"dashboard export failed: {exc}", file=sys.stderr)

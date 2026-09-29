@@ -44,7 +44,7 @@ function render() {
   $('model-description').textContent=state.model==='baseline'?`대상일의 ${state.horizon}일 전까지 관측된 마지막 가격을 유지합니다. 참조가격이 기준일보다 14일 넘게 오래되면 예측하지 않습니다.`:`최근 가격과 7·28·90일 동안의 가격 흐름·변동폭·거래량, 요일과 연중 시기를 함께 봅니다. ${state.model==='ridge'?'Ridge 회귀는 이 정보와 이후 가격 변화 사이의 선형 관계를 학습합니다.':'부스팅 트리는 여러 조건의 조합에 따라 달라지는 가격 변화를 학습합니다.'}`;
   const lastPrediction=recent[0];
   const fit=run?.fits?.find(f=>f.cutoff===lastPrediction?.fitCutoff);
-  $('training-caption').textContent=state.model==='baseline'?'학습 없는 비교 기준 · 직전 관측가격 유지':fit?`최근 표시 예측의 학습 범위: ${fit.trainStart} ~ ${fit.trainEnd} · ${cadenceNames[state.cadence]} 갱신`:'2014년 이력부터 학습 · 정답이 관측된 뒤 다음 학습에 반영';
+  $('training-caption').textContent=state.model==='baseline'?'학습 없는 비교 기준 · 직전 관측가격 유지':fit?`최근 표시 예측의 학습 범위: ${fit.trainStart} ~ ${fit.trainEnd} · ${cadenceNames[state.cadence]} 갱신`:`${data.meta.contextStart??data.meta.dataStart??'확보된 자료'}부터 학습 · 정답이 관측된 뒤 다음 학습에 반영`;
   const comparison=baselineComparison(rows);
   const c=$('baseline-comparison');
   const regressed=comparison.model.n>0&&(comparison.model.mae>comparison.baseline.mae||comparison.model.mape>comparison.baseline.mape);
@@ -90,7 +90,8 @@ function renderChart() {
   for (let i=0;i<5;i++) {const value=yMin+(yMax-yMin)*i/4,pos=y(value);contents+=`<line class="grid-line" x1="${left}" x2="${width-right}" y1="${pos}" y2="${pos}"/><text class="axis-text" text-anchor="end" x="${left-10}" y="${pos+4}">${fmt(value,0)}</text>`;}
   contents+=`<text class="axis-text" x="${left}" y="12">원/kg</text>`;
   const tickCount=width<600?4:7;
-  for (let i=0;i<tickCount;i++) {const time=minTime+(maxTime-minTime)*i/(tickCount-1);const date=new Date(time).toISOString().slice(0,10);contents+=`<text class="axis-text" x="${left+plotWidth*i/(tickCount-1)}" y="${height-10}" text-anchor="${i===0?'start':i===tickCount-1?'end':'middle'}">${date.slice(5).replace('-','.')}</text>`;}
+  const spansYears=state.start.slice(0,4)!==state.end.slice(0,4);
+  for (let i=0;i<tickCount;i++) {const time=minTime+(maxTime-minTime)*i/(tickCount-1);const date=new Date(time).toISOString().slice(0,10);const label=spansYears?date.slice(0,7):date.slice(5);contents+=`<text class="axis-text" x="${left+plotWidth*i/(tickCount-1)}" y="${height-10}" text-anchor="${i===0?'start':i===tickCount-1?'end':'middle'}">${label.replace('-','.')}</text>`;}
   for (const series of ['actual','predicted']) {
     let path='',previous=null;
     for (const p of points) {
@@ -136,7 +137,7 @@ $('replay-next').addEventListener('click',()=>updateReplay(Number($('asof').valu
 $('granularity').addEventListener('click',e=>{const b=e.target.closest('[data-unit]');if(!b)return;state.unit=b.dataset.unit;document.querySelectorAll('[data-unit]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render();});
 $('filters').addEventListener('submit',e=>e.preventDefault());
 for (const field of ['start','end']) $(field).addEventListener('change',e=>{state[field]=e.target.value;$('period').value='custom';render();});
-$('period').addEventListener('change',e=>{if(e.target.value==='custom')return;state.end=data.meta.evaluationEnd;const d=new Date(dayTime(state.end));if(e.target.value==='year')state.start=data.meta.evaluationStart;else{d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()-(e.target.value==='half'?5:2));state.start=d.toISOString().slice(0,10);if(state.start<data.meta.evaluationStart)state.start=data.meta.evaluationStart;}$('start').value=state.start;$('end').value=state.end;render();});
+$('period').addEventListener('change',e=>{if(e.target.value==='custom')return;state.end=data.meta.evaluationEnd;const d=new Date(dayTime(state.end));if(e.target.value==='all')state.start=data.meta.evaluationStart;else{d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()-(e.target.value==='half'?5:2));state.start=d.toISOString().slice(0,10);if(state.start<data.meta.evaluationStart)state.start=data.meta.evaluationStart;}$('start').value=state.start;$('end').value=state.end;render();});
 $('export').addEventListener('click',()=>{const product=data.products.find(p=>p.id===state.product);const link=document.createElement('a');const url=URL.createObjectURL(new Blob([toCsv(rows,state.horizon,product.name,state.model,state.model==='baseline'?'none':state.cadence)],{type:'text/csv;charset=utf-8;'}));link.href=url;link.download=`${product.id}_${state.model}_${state.cadence}_h${state.horizon}_${state.start}_${state.asOf}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 async function load() {
   $('loading').hidden=false;$('workspace').hidden=true;$('error').hidden=true;$('export').disabled=true;
@@ -148,7 +149,8 @@ async function load() {
     state.start=data.meta.evaluationStart;state.end=data.meta.evaluationEnd;
     state.asOf=state.end;$('asof').max=Math.round((dayTime(state.end)-dayTime(state.start))/86400000);$('asof').value=$('asof').max;
     for(const field of ['start','end']){$(field).value=state[field];$(field).min=data.meta.evaluationStart;$(field).max=data.meta.evaluationEnd;}
-    $('period').value='year';
+    $('period').value='all';
+    $('evaluation-summary').textContent=`가락·강서 경매자료로 학습한 모델의 ${data.meta.evaluationStart} ~ ${data.meta.evaluationEnd} 순차 평가입니다. 현재 수정본을 사용한 실험이며, 전국 대표가격·공모전 공식 성능과는 구분됩니다.`;
     renderProducts();
     $('sources').innerHTML='';
     for(const [i,source] of (data.meta.sourceUrls??[]).entries()) {
@@ -157,7 +159,7 @@ async function load() {
       if(!['https:','http:'].includes(parsed.protocol))continue;
       const a=document.createElement('a');a.href=parsed.href;a.target='_blank';a.rel='noreferrer noopener';a.textContent=`자료 출처 ${i+1} ↗`;$('sources').append(a);
     }
-    $('updated').textContent=`데이터 생성 ${String(data.generatedAt??'').slice(0,10)} · 평가기간 ${state.start.slice(0,4)}년`;
+    $('updated').textContent=`데이터 생성 ${String(data.generatedAt??'').slice(0,10)} · 평가기간 ${data.meta.evaluationStart} ~ ${data.meta.evaluationEnd}`;
     $('workspace').hidden=false;render();
   } catch(error) {$('error-message').textContent=error.name==='TimeoutError'?'응답이 지연되었습니다. 로컬 서버 상태를 확인한 뒤 다시 불러오세요.':error.message;$('error').hidden=false;}
   finally{$('loading').hidden=true;}

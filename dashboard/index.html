@@ -27,7 +27,7 @@
     <div id="loading" class="loading" role="status">수집된 가격과 예측 결과를 불러오고 있습니다…</div>
     <section id="error" class="error-box" hidden aria-live="polite"><h2>평가 데이터를 불러오지 못했습니다</h2><p id="error-message"></p><button id="retry" class="button">다시 불러오기</button></section>
     <div id="workspace" hidden>
-      <aside class="research-note"><span class="note-symbol" aria-hidden="true">i</span><div><strong>과거를 학습하고, 다음 날의 실제가격으로 평가합니다.</strong><p>가락·강서 경매자료로 학습한 모델의 2015년 순차 평가입니다. 현재 수정본을 사용한 초기 실험이며, 전국 대표가격·공모전 공식 성능과는 구분됩니다.</p></div><span class="note-chip">후향적 평가</span></aside>
+      <aside class="research-note"><span class="note-symbol" aria-hidden="true">i</span><div><strong>과거를 학습하고, 다음 날의 실제가격으로 평가합니다.</strong><p id="evaluation-summary">가락·강서 경매자료로 학습한 모델의 순차 평가입니다. 현재 수정본을 사용한 실험이며, 전국 대표가격·공모전 공식 성능과는 구분됩니다.</p></div><span class="note-chip">후향적 평가</span></aside>
       <nav class="products" id="products" aria-label="조회 품목"></nav>
       <section class="analysis-panel" aria-labelledby="chart-title">
         <div class="panel-heading"><div><p class="eyebrow" id="scope-caption">가락 · 강서 / 경매 / 원·kg</p><h2 id="chart-title">배추 가격 흐름</h2></div><div class="model-pill"><span class="status-dot"></span><span id="model-badge">학습모델</span></div></div>
@@ -35,7 +35,7 @@
         <form id="filters" class="filters">
           <label>예측 시점<select id="horizon" name="horizon"></select></label>
           <fieldset class="group-field"><legend>차트 단위</legend><div class="segmented" id="granularity"><button type="button" data-unit="day" aria-pressed="true">일</button><button type="button" data-unit="week" aria-pressed="false">주</button><button type="button" data-unit="month" aria-pressed="false">월</button><button type="button" data-unit="quarter" aria-pressed="false">분기</button></div></fieldset>
-          <div class="date-controls"><label>조회 시작<input type="date" id="start" required></label><span class="date-divider" aria-hidden="true">—</span><label>조회 종료<input type="date" id="end" required></label><label class="period-label">빠른 선택<select id="period"><option value="year">평가기간 1년</option><option value="half">마지막 6개월</option><option value="quarter">마지막 3개월</option><option value="custom">직접 선택</option></select></label></div>
+          <div class="date-controls"><label>조회 시작<input type="date" id="start" required></label><span class="date-divider" aria-hidden="true">—</span><label>조회 종료<input type="date" id="end" required></label><label class="period-label">빠른 선택<select id="period"><option value="all">전체 평가기간</option><option value="half">마지막 6개월</option><option value="quarter">마지막 3개월</option><option value="custom">직접 선택</option></select></label></div>
         </form>
         <div class="replay"><div class="replay-label"><strong>하루씩 평가하기</strong><span id="asof-label"></span></div><input id="asof" type="range" min="0" max="364" value="364" aria-label="평가 진행일"><button type="button" id="replay-start">처음부터</button><button type="button" id="replay-next">하루 진행 →</button></div>
         <p id="filter-error" class="filter-error" role="alert" hidden></p>

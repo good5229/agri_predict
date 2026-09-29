@@ -1,4 +1,5 @@
 import contextlib
+import datetime as dt
 import io
 import json
 import math
@@ -230,6 +231,41 @@ class DashboardTests(unittest.TestCase):
         self.assertFalse([o for o in onion["observations"] if o["date"] == "2015-06-02"])
         self.assertGreater(onion["diagnostics"]["missingOrIncompleteMarketQueries"], 0)
         self.assertGreater(onion["diagnostics"]["incompleteMarketDays"], 0)
+
+    def test_custom_context_and_evaluation_range_reaches_export_and_cli(self):
+        self.add_query("2015-12-31", "110001", "10", "01", [
+            self.row("2015-12-31", "110001", amount="200", volume="10")
+        ])
+        self.add_query("2015-12-31", "110008", "10", "01", [])
+        self.add_query("2016-01-02", "110001", "10", "01", [
+            self.row("2016-01-02", "110001", amount="250", volume="10")
+        ])
+        self.add_query("2016-01-02", "110008", "10", "01", [])
+        self.add_query("2016-01-03", "110001", "10", "01", [])
+        self.add_query("2016-01-03", "110008", "10", "01", [])
+        args = ["--context-start", "2015-12-31", "--context-end", "2016-01-03",
+                "--evaluation-start", "2016-01-02", "--evaluation-end", "2016-01-03"]
+        output = Path(self.tmp.name) / "expanded.json"
+        self.assertEqual(dashboard.main(["--db", self.db_path, "--output", str(output), *args]), 0)
+        report = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(report["meta"]["contextStart"], "2015-12-31")
+        self.assertEqual(report["meta"]["contextEnd"], "2016-01-03")
+        self.assertEqual(report["meta"]["evaluationStart"], "2016-01-02")
+        self.assertEqual(report["meta"]["evaluationEnd"], "2016-01-03")
+        cabbage = next(p for p in report["products"] if p["id"] == "cabbage")
+        self.assertEqual([row["date"] for row in cabbage["observations"]], ["2015-12-31", "2016-01-02"])
+        prediction = next(row for row in cabbage["predictions"] if row["target"] == "2016-01-02")
+        self.assertEqual(prediction["sourceDate"], "2015-12-31")
+
+    def test_invalid_custom_ranges_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "inside"):
+            dashboard.build_dashboard(
+                self.db, self.db_path,
+                context_start=dashboard.START_DATE,
+                context_end=dashboard.CONTEXT_END,
+                evaluation_start=dashboard.CONTEXT_END + dt.timedelta(days=1),
+                evaluation_end=dashboard.CONTEXT_END + dt.timedelta(days=1),
+            )
 
 
 if __name__ == "__main__":

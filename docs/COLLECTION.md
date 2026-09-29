@@ -58,6 +58,16 @@ crontab -l
 
 Python 3.10 이상과 TLS 검증이 가능한 시스템 `curl`을 사용한다. 핵심 수집은 별도 Python 패키지 설치 없이 실행할 수 있다. Parquet 내보내기는 선택 기능이며 `pyarrow`가 별도로 필요하다.
 
+### 2026-09-29 추가 자료 재학습 범위
+
+오늘 총 10,000회 예산을 사용한 수집은 13:00:58 KST에 종료됐다. 2017년 job 19는 완료했고, 2018년 job 20은 12월 말 일부가 남았다. 날짜별 가락·강서×5품목군의 10개 조회가 모두 완료/정상 0건인 마지막 날짜는 **2018-12-20**이다. job 19·20의 페이지·건수·원문/정규화 연결·외래키·응답 날짜 검사는 오류 0개였고, job 20의 작업 전체 미완료에 따른 manifest 오류 1개는 유지된다. 결과는 `runs/validate-job-19-retrain.json`, `runs/validate-job-20-retrain.json`에 보존한다. 음수 정정 거래와 금액 불일치 등 원자료 품질 표식은 별도로 보존하며 무조건 제거하지 않는다.
+
+재학습에는 **2014-01-01~2018-12-20**의 기존 정의와 같은 경매·kg 집계를 사용한다. 초기 학습 후보 구간은 2014~2016년이며 **2017-01-01~2018-12-20**을 순차 평가한다. 10일 뒤 예측의 초기 날짜를 포함하기 위해 2016-12-22부터 예측 원점을 시작하고, 각 학습은 해당 원점까지 정답이 알려진 목표일만 사용한다. 모델·변수·파라미터는 기존 Ridge/HistGradientBoosting 비교와 동일하게 고정하며, 일·주·월·계절 재학습 및 1~10일 예측을 모두 수행한다. 이 기간의 성능을 보고 설정을 재선택하지 않는다.
+
+가격 추출은 `outputs/prices-expanded-20260929.json`, 학습 결과는 `outputs/dashboard-expanded-20260929.json`에 따로 저장했다. 15:40 KST에 재학습이 완료됐으며 145,284개 학습 예측쌍의 날짜·학습 cutoff, 정상 학습 5,366회, 마지막 모델 파일 32개의 해시를 확인한 뒤 대시보드 표시 자료를 교체했다. 기존 2015년 결과는 `outputs/dashboard-2015-archived-20260929.json`으로 보존했고, 동결한 `experiments-development.json`·`experiments-holdout.json`과 기존 가격 추출 파일도 실행 전 해시와 동일하다. 상세 품목별 결과는 README의 확장 기간 재학습 절과 `outputs/evaluation-expanded-20260929.json`에 있다. 이는 확보된 과거 자료의 예측·평가이며 2026년 현재 가격의 실시간 전망이 아니다. 원자료의 당시 공표본이 확보되지 않은 한계도 유지한다.
+
+실행한 `dashboard.py` SHA-256은 `ab9b86a85dca98801d19610f07f51072309a97c4d177fd12e054f45c31f45db1`, `modeling.py`는 `0ef149c231cc19f5990548822c10afecb16957863eddbd436d7d61a06c9963fc`다. 새 가격 추출 파일 SHA-256은 `f731373248dc0ca5d31fc479f160a0548335994af0e074909949eeaa1ca0c3c5`이며, 모델 manifest의 `priceExportSha256`은 파일 바이트가 아닌 정렬된 JSON 직렬화 해시다. 실행 로그는 `runs/model-expanded-20260929.log`, 모델 manifest는 `outputs/models-expanded-20260929/run-20260929T064028Z-b9171396/manifest.json`에 보존한다.
+
 ```bash
 # 외부 .env는 원격 저장소에 포함하지 않는다. 실제 경로를 인자로 지정한다.
 python3 -m agri_data.collector production --env-file /path/to/kosis.env --db data/agri.sqlite --start 1980-01-01 --end 2026-09-27 --max-requests 12 --rate 2

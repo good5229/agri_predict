@@ -18,7 +18,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
-from .dashboard import HORIZONS, MAX_SOURCE_AGE_DAYS, write_json_atomic
+from .dashboard import CONTEXT_END, HORIZONS, MAX_SOURCE_AGE_DAYS, START_DATE, write_json_atomic
 
 
 MIN_TRAIN_TARGET_DAYS = 90
@@ -242,6 +242,8 @@ def _fit_cadence(
     feature_cache: dict[Any, Any],
     training_matrix: Any,
     training_labels: Any,
+    evaluation_start: dt.date = EVALUATION_START,
+    evaluation_end: dt.date = EVALUATION_END,
 ) -> tuple[dict[str, Any], Any | None]:
     runs_predictions: list[dict[str, Any]] = []
     fits: list[dict[str, Any]] = []
@@ -317,7 +319,7 @@ def _fit_cadence(
                     diagnostics["clippedLogPricePredictions"] += 1
                 issued += 1
                 actual = eval_actuals.get(target)
-                if EVALUATION_START <= target <= EVALUATION_END and actual is not None:
+                if evaluation_start <= target <= evaluation_end and actual is not None:
                     matched += 1
                     runs_predictions.append({
                         "origin": origin.isoformat(),
@@ -414,12 +416,40 @@ def build_model_dashboard(
     source: dict[str, Any],
     artifacts_dir: str | Path | None = None,
     *,
-    origin_start: dt.date = FIRST_ORIGIN,
-    origin_end: dt.date = LAST_ORIGIN,
+    origin_start: dt.date | None = None,
+    origin_end: dt.date | None = None,
+    evaluation_start: dt.date | None = None,
+    evaluation_end: dt.date | None = None,
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     if source.get("schemaVersion") != 1 or not isinstance(source.get("products"), list):
         raise ValueError("input must be a dashboard schemaVersion 1 JSON price export")
+    source_meta = source.get("meta") or {}
+    if not isinstance(source_meta, dict):
+        raise ValueError("input has invalid metadata")
+    source_eval_start = _parse_day(source_meta.get("evaluationStart"))
+    source_eval_end = _parse_day(source_meta.get("evaluationEnd"))
+    if ("evaluationStart" in source_meta and source_eval_start is None
+            or "evaluationEnd" in source_meta and source_eval_end is None):
+        raise ValueError("input has invalid evaluation date metadata")
+    source_context_start = _parse_day(source_meta.get("contextStart"))
+    source_context_end = _parse_day(source_meta.get("contextEnd"))
+    if (("contextStart" in source_meta and source_context_start is None)
+            or ("contextEnd" in source_meta and source_context_end is None)
+            or ((source_context_start is None) != (source_context_end is None))):
+        raise ValueError("input has invalid context date metadata")
+    evaluation_start = evaluation_start or source_eval_start or EVALUATION_START
+    evaluation_end = evaluation_end or source_eval_end or EVALUATION_END
+    if evaluation_start > evaluation_end:
+        raise ValueError("evaluation_start must not be after evaluation_end")
+    if source_eval_start and source_eval_start != evaluation_start:
+        raise ValueError("evaluation_start must match the input price export")
+    if source_eval_end and source_eval_end != evaluation_end:
+        raise ValueError("evaluation_end must match the input price export")
+    if origin_start is None:
+        origin_start = evaluation_start - dt.timedelta(days=max(HORIZONS))
+    if origin_end is None:
+        origin_end = evaluation_end - dt.timedelta(days=1)
     if origin_start > origin_end:
         raise ValueError("origin_start must not be after origin_end")
     products = source["products"]
@@ -443,9 +473,29 @@ def build_model_dashboard(
         {"id": "hist_gb", "name": MODEL_NAMES["hist_gb"], "kind": "trained",
          "description": "고정 반복횟수의 HistGradientBoosting 회귀. 설정은 사전 고정했으며 튜닝·우월성은 주장하지 않습니다."},
     ]
+    context_start = source_context_start or START_DATE
+    observed_dates = [_parse_day(row.get("date")) for product in products for row in product.get("observations", [])]
+    observed_dates = [day for day in observed_dates if day is not None]
+    context_end = source_context_end or max(CONTEXT_END, evaluation_end, max(observed_dates, default=context_start))
+    if context_start > context_end:
+        raise ValueError("input has invalid context date range")
+    if evaluation_start < context_start or evaluation_end > context_end:
+        raise ValueError("evaluation range must be inside the input context range")
+    meta["contextStart"] = context_start.isoformat()
+    meta["contextEnd"] = context_end.isoformat()
+    initial_training_end = min(context_end, evaluation_start - dt.timedelta(days=1))
+    meta["evaluationStart"] = evaluation_start.isoformat()
+    meta["evaluationEnd"] = evaluation_end.isoformat()
     meta["training"] = {
-        "initialPeriod": "2014년 자료를 초기 학습 창으로 사용하며, warm-up 평가 원점은 2014-12-22부터 시작합니다.",
-        "evaluationPolicy": "원점마다 1~10일 뒤의 달력 날짜를 모두 예측한 뒤, 2015년 실제 관측일에만 결과를 연결합니다.",
+        "initialPeriod": f"{context_start.isoformat()}~{initial_training_end.isoformat()} 자료가 초기 학습 후보 창입니다. 첫 warm-up fit은 원점 {origin_start.isoformat()}까지의 목표일만 사용하며, 이후 fit도 각 원점 cutoff를 넘지 않습니다.",
+        "evaluationPolicy": f"원점마다 1~10일 뒤의 달력 날짜를 모두 예측한 뒤, {evaluation_start.isoformat()}~{evaluation_end.isoformat()} 실제 관측일에만 결과를 연결합니다.",
+        "warmupOriginStart": origin_start.isoformat(),
+        "warmupOriginEnd": origin_end.isoformat(),
+        "evaluationStart": evaluation_start.isoformat(),
+        "evaluationEnd": evaluation_end.isoformat(),
+        "initialTrainingStart": context_start.isoformat(),
+        "initialTrainingEnd": initial_training_end.isoformat(),
+        "firstFitCutoff": origin_start.isoformat(),
         "cutoffPolicy": "각 fit cutoff는 그 fit을 사용하는 원점 이하이며 학습 목표일도 cutoff 이하입니다. 미래 목표 값은 특징·재학습 일정·예측 발행 여부에 사용하지 않습니다.",
         "refitCadence": {"daily": "매일", "weekly": "월요일 달력 주 시작", "monthly": "매월 1일", "seasonal": "3·6·9·12월 1일; 겨울은 12~2월"},
         "targetTransform": "ln(목표 실제가격 / 예측 원점의 마지막 관측가격)",
@@ -476,8 +526,10 @@ def build_model_dashboard(
     estimator_artifacts: list[dict[str, Any]] = []
     for product in output["products"]:
         series = _observed_series(product)
+        if any(day < context_start or day > context_end for day in series):
+            raise ValueError(f"observations fall outside input context for product {product.get('id')!r}")
         eval_actuals = {day: price for day, (price, _) in series.items()
-                        if EVALUATION_START <= day <= EVALUATION_END}
+                        if evaluation_start <= day <= evaluation_end}
         feature_cache: dict[Any, Any] = {}
         sample_pool = _supervised_samples(series, max(series) if series else EVALUATION_START, feature_cache)[0]
         training_matrix = np.asarray([sample[3] for sample in sample_pool], dtype=np.float64)
@@ -487,7 +539,8 @@ def build_model_dashboard(
             for cadence in CADENCES:
                 run_started = time.perf_counter()
                 run, estimator = _fit_cadence(series, model_id, cadence, origin_start, origin_end, eval_actuals,
-                                               sample_pool, feature_cache, training_matrix, training_labels)
+                                               sample_pool, feature_cache, training_matrix, training_labels,
+                                               evaluation_start, evaluation_end)
                 runs.append(run)
                 estimator_artifacts.append({
                     "modelId": model_id,
@@ -520,6 +573,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input", default="outputs/prices-dashboard.json", help="schema v1 price-only dashboard JSON")
     parser.add_argument("--output", default="outputs/dashboard.json", help="schema v2 comparison dashboard JSON")
     parser.add_argument("--artifacts-dir", default="outputs/models", help="directory for last-fit joblib files and manifest")
+    parser.add_argument("--evaluation-start", type=dt.date.fromisoformat)
+    parser.add_argument("--evaluation-end", type=dt.date.fromisoformat)
     args = parser.parse_args(argv)
     try:
         if Path(args.input).resolve() == Path(args.output).resolve():
@@ -530,11 +585,23 @@ def main(argv: list[str] | None = None) -> int:
         if artifact_root and (input_path.is_relative_to(artifact_root) or output_path.is_relative_to(artifact_root)):
             raise ValueError("input/output JSON paths must be outside the model artifact directory")
         source = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        source_meta = source.get("meta", {}) if isinstance(source, dict) else {}
+        if not isinstance(source_meta, dict):
+            raise ValueError("input has invalid metadata")
+        eval_start = args.evaluation_start or _parse_day(source_meta.get("evaluationStart")) or EVALUATION_START
+        eval_end = args.evaluation_end or _parse_day(source_meta.get("evaluationEnd")) or EVALUATION_END
+        if (eval_start, eval_end) != (EVALUATION_START, EVALUATION_END):
+            if output_path == Path("outputs/dashboard.json").resolve():
+                raise ValueError("custom evaluation ranges require a new --output path to preserve the 2015 dashboard")
+            if artifact_root == Path("outputs/models").resolve():
+                raise ValueError("custom evaluation ranges require a new --artifacts-dir path")
         progress = lambda info: print(
             f"training progress product={info['productId']} model={info['modelId']} cadence={info['cadence']} "
             f"fits={info['fitCount']} matched_pairs={info['matchedPredictionCount']} elapsed_s={info['elapsedSeconds']:.1f}",
             file=sys.stderr, flush=True)
-        result = build_model_dashboard(source, args.artifacts_dir, progress_callback=progress)
+        result = build_model_dashboard(source, args.artifacts_dir,
+                                       evaluation_start=eval_start, evaluation_end=eval_end,
+                                       progress_callback=progress)
         try:
             write_json_atomic(args.output, result)
         except Exception:

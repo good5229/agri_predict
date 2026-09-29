@@ -152,6 +152,53 @@ class ModelingTests(unittest.TestCase):
             self.assertTrue(all("학습하지 않은 지속성 기준선" not in note
                                 for p in output["products"] for note in p["notes"]))
 
+    def test_expanded_evaluation_range_uses_custom_dates_and_preserves_warmup_cutoff(self):
+        rows = daily_series(dt.date(2017, 1, 10))
+        source = base_dashboard({product_id: rows for product_id in PRODUCT_IDS})
+        source["meta"].update({
+            "contextStart": "2014-01-01",
+            "contextEnd": "2017-01-10",
+            "evaluationStart": "2017-01-01",
+            "evaluationEnd": "2017-01-10",
+        })
+        result = modeling.build_model_dashboard(source)
+        self.assertEqual(result["meta"]["contextStart"], "2014-01-01")
+        self.assertEqual(result["meta"]["contextEnd"], "2017-01-10")
+        self.assertEqual(result["meta"]["evaluationStart"], "2017-01-01")
+        self.assertEqual(result["meta"]["evaluationEnd"], "2017-01-10")
+        training = result["meta"]["training"]
+        self.assertEqual(training["warmupOriginStart"], "2016-12-22")
+        self.assertEqual(training["warmupOriginEnd"], "2017-01-09")
+        self.assertEqual(training["initialTrainingEnd"], "2016-12-31")
+        self.assertEqual(training["firstFitCutoff"], "2016-12-22")
+        for product in result["products"]:
+            self.assertEqual(len(product["runs"]), 8)
+            self.assertEqual({run["modelId"] for run in product["runs"]}, {"ridge", "hist_gb"})
+            self.assertEqual({run["cadence"] for run in product["runs"]}, set(modeling.CADENCES))
+            for run in product["runs"]:
+                self.assertEqual({item["horizon"] for item in run["predictions"]}, set(modeling.HORIZONS))
+                self.assertTrue(all("2017-01-01" <= item["target"] <= "2017-01-10"
+                                    for item in run["predictions"]))
+                prediction = next(item for item in run["predictions"]
+                                  if item["target"] == "2017-01-01" and item["horizon"] == 10)
+                self.assertEqual(prediction["horizon"], 10)
+                self.assertEqual(prediction["origin"], "2016-12-22")
+                self.assertEqual(prediction["fitCutoff"], "2016-12-22")
+                self.assertLessEqual(prediction["sourceDate"], prediction["origin"])
+                self.assertTrue(all(dt.date.fromisoformat(fit["trainEnd"]) <= dt.date.fromisoformat(fit["cutoff"])
+                                    for fit in run["fits"] if fit["status"] == "fitted"))
+
+    def test_invalid_or_inconsistent_source_range_metadata_is_rejected(self):
+        source = base_dashboard({product_id: daily_series(dt.date(2015, 1, 10)) for product_id in PRODUCT_IDS})
+        source["meta"]["contextStart"] = "not-a-date"
+        source["meta"]["contextEnd"] = "2015-12-31"
+        with self.assertRaisesRegex(ValueError, "invalid context"):
+            modeling.build_model_dashboard(source)
+        source["meta"].update({"contextStart": "2014-01-01", "contextEnd": "2015-12-31",
+                               "evaluationStart": "2017-01-01", "evaluationEnd": "2017-01-02"})
+        with self.assertRaisesRegex(ValueError, "inside"):
+            modeling.build_model_dashboard(source)
+
     def test_model_or_json_failure_preserves_previous_json_and_artifact_run(self):
         long_source = base_dashboard({key: daily_series(dt.date(2014, 12, 31)) for key in PRODUCT_IDS})
         short_source = base_dashboard({key: [(dt.date(2014, 12, 31), 100.0, 10.0)] for key in PRODUCT_IDS})
