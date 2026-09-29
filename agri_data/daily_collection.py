@@ -239,15 +239,10 @@ def run_daily(*, db_path: str = "data/agri.sqlite", env_file: str,
                 result.update(status="stopped", stopKind=blocked[0], message=blocked[1])
                 _atomic_json(status_path, result)
                 return result
-            if latest_status.get("date") == day.isoformat() and latest_status.get("stopKind") == "budget_exhausted":
-                result.update(status="budget_exhausted", stopKind="budget_exhausted")
-                return result
-            if latest_status.get("date") == day.isoformat() and latest_status.get("yearWorked") is not None:
-                result.update(status="already_processed_today", yearWorked=latest_status["yearWorked"])
-                return result
             count, _, _, _ = _today_attempts(db, day)
-            if count >= daily_limit or (latest_status.get("date") == day.isoformat()
-                                        and latest_status.get("stopKind") == "budget_exhausted"):
+            jobs = _plan(db, collector_db_path, env_path, ranges)
+            result["ranges"] = jobs
+            if count >= daily_limit:
                 result.update(status="budget_exhausted", stopKind="budget_exhausted",
                               httpAttemptsToday=count, remainingHttpBudget=max(0, daily_limit-count))
                 _atomic_json(status_path, result)
@@ -260,14 +255,22 @@ def run_daily(*, db_path: str = "data/agri.sqlite", env_file: str,
         result["status"] = "running"
         result["startedAtKst"] = dt.datetime.now(KST).isoformat()
         _atomic_json(status_path, result)
+        # Revisit the manifest while holding the process lock, so a previous
+        # runner's completed work is skipped before any new year is scheduled.
+        db = collector.open_db(str(db_file), readonly=True)
+        try:
+            jobs = _plan(db, collector_db_path, env_path, ranges)
+        finally:
+            db.close()
+        result["ranges"] = jobs
         unfinished = [item for item in jobs if item["state"] != "complete"]
         if not unfinished:
             result.update(status="complete")
         else:
-            year = min(int(item["start"][:4]) for item in unfinished)
-            result["yearWorked"] = year
-            selected = [item for item in unfinished if int(item["start"][:4]) == year]
+            selected = unfinished
             for item in selected:
+                year = int(item["start"][:4])
+                result["yearWorked"] = year
                 if item["state"] == "manual_review":
                     result.update(status="stopped", stopKind="collector_error",
                                   message="an earlier failed year job requires inspection")
@@ -382,7 +385,9 @@ def run_daily(*, db_path: str = "data/agri.sqlite", env_file: str,
                 if result["status"] in ("stopped", "budget_exhausted"):
                     break
             if result["status"] == "running":
-                result.update(status="year_complete")
+                result.update(status="complete" if all(item["state"] == "complete" for item in jobs)
+                              else "budget_exhausted" if result.get("remainingHttpBudget", 0) == 0
+                              else "pending")
         result["finishedAtKst"] = dt.datetime.now(KST).isoformat()
         _atomic_json(status_path, result)
         logger.info("run finished status=%s attempts=%s", result["status"], result.get("httpAttemptsToday"))

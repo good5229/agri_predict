@@ -2,7 +2,6 @@ import contextlib
 import datetime as dt
 import fcntl
 import io
-import io
 import json
 import tempfile
 import unittest
@@ -45,6 +44,24 @@ class DailyCollectionTests(unittest.TestCase):
         db.commit()
         db.close()
 
+    def complete_args(self, args, attempts=0, when="2026-09-28T00:10:00+00:00"):
+        db = collector.open_db(str(self.db_path))
+        config_json = daily._canonical_job_config(args)
+        row = db.execute("SELECT job_id FROM jobs WHERE command='prices' AND config_json=? ORDER BY job_id DESC LIMIT 1",
+                         (config_json,)).fetchone()
+        if row:
+            job = row[0]
+        else:
+            job = collector.begin_job(db, "prices", json.loads(config_json))
+        collector.finish_job(db, job, "complete")
+        for index in range(attempts):
+            db.execute("""INSERT INTO request_attempts(job_id,request_key,epoch_id,attempt_no,started_at,finished_at,
+                        http_status) VALUES(?,?,?,?,?,?,?)""",
+                        (job, f"simulated-{index}", "e", index+1, when, when, 200))
+        db.commit()
+        db.close()
+        return job
+
     def invoke(self, **kwargs):
         options = {"db_path": "data/agri.sqlite", "env_file": str(self.root / "test.env"),
                    "root": self.root, "today": TEST_DAY, "disk_floor": 5,
@@ -74,36 +91,73 @@ class DailyCollectionTests(unittest.TestCase):
         self.assertEqual(result["ranges"][0]["state"], "resume")
         self.assertFalse((self.root / "runs").exists())
 
-    def test_one_calendar_year_per_day_and_same_day_noop(self):
+    def test_legacy_year_complete_status_continues_to_2017_same_day(self):
+        for start, end in ((dt.date(2016, 1, 1), dt.date(2016, 3, 31)),
+                           (dt.date(2016, 4, 1), dt.date(2016, 12, 31))):
+            self.create_job(start, end, "complete")
+        status_path = self.root / "runs" / "daily-collection-status.json"
+        status_path.parent.mkdir()
+        status_path.write_text(json.dumps({"date": TEST_DAY.isoformat(), "status": "year_complete",
+                                           "yearWorked": 2016}), encoding="utf-8")
         calls = []
 
         def complete(args):
             calls.append((args.start, args.end))
-            # collector.execute attaches its runtime RequestBudget to this Namespace.
             args._budget = collector.RequestBudget(args.max_requests)
-            db = collector.open_db(str(self.db_path))
-            config = json.loads(daily._canonical_job_config(args))
-            job = collector.begin_job(db, "prices", config)
-            collector.finish_job(db, job, "complete")
-            db.close()
-            print("done TEST_SECRET")
+            self.complete_args(args)
             return 0
 
-        first = self.invoke(execute=complete, daily_limit=100, chunk_size=2)
-        self.assertEqual(first["status"], "year_complete")
-        self.assertEqual(first["yearWorked"], 2016)
-        self.assertEqual(len(calls), 2)  # 2016 Q1 and its tail; no 2017 request.
-        again = self.invoke(execute=complete, daily_limit=100, chunk_size=2)
-        self.assertEqual(again["status"], "already_processed_today")
-        self.assertEqual(len(calls), 2)
-        next_day = self.invoke(execute=complete, daily_limit=100, chunk_size=2,
-                            today=TEST_DAY + dt.timedelta(days=1))
-        self.assertEqual(next_day["status"], "year_complete")
-        self.assertEqual(next_day["yearWorked"], 2017)
-        self.assertEqual(len(calls), 3)
-        status_text = (self.root / "runs" / "daily-collection-status.json").read_text(encoding="utf-8")
-        log_text = (self.root / "runs" / "daily-collection.log").read_text(encoding="utf-8")
-        self.assertNotIn("TEST_SECRET", status_text + log_text)
+        result = self.invoke(execute=complete, daily_limit=100, chunk_size=2)
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(calls[0][0], dt.date(2017, 1, 1))
+        self.assertTrue(status_path.exists())
+
+    def test_remaining_budget_advances_years_and_stops_at_exact_cap(self):
+        self.create_job()
+        calls = []
+
+        def finish_with_spend(args):
+            spent = min(2, args.max_requests)
+            calls.append((args.start, args.max_requests))
+            self.complete_args(args, attempts=spent)
+            return 0
+
+        result = self.invoke(execute=finish_with_spend, daily_limit=5, chunk_size=250)
+        self.assertEqual([start for start, _ in calls], [dt.date(2016, 1, 1), dt.date(2016, 4, 1), dt.date(2017, 1, 1)])
+        self.assertEqual([budget for _, budget in calls], [5, 3, 1])
+        self.assertEqual(result["status"], "budget_exhausted")
+        self.assertEqual(result["httpAttemptsToday"], 5)
+        self.assertEqual(result["remainingHttpBudget"], 0)
+
+    def test_next_day_resumes_same_incomplete_job_and_completed_jobs_are_skipped(self):
+        job, args = self.create_job()
+        first_calls = []
+
+        def exhaust_one(args):
+            first_calls.append((args.start, args.end))
+            self.add_attempt(job)
+            print("job incomplete: request budget exhausted; resume to continue")
+            return 2
+
+        first = self.invoke(execute=exhaust_one, daily_limit=1, chunk_size=1)
+        self.assertEqual(first["status"], "budget_exhausted")
+        self.assertEqual(first_calls, [(args.start, args.end)])
+        resumed_calls = []
+
+        def complete_resume(args):
+            resumed_calls.append((args.start, args.end))
+            self.complete_args(args, when="2026-09-29T00:10:00+00:00")
+            return 0
+
+        next_day = self.invoke(execute=complete_resume, daily_limit=100,
+                               today=TEST_DAY + dt.timedelta(days=1))
+        self.assertEqual(resumed_calls[0], (args.start, args.end))
+        self.assertEqual(next_day["status"], "complete")
+        before = len(resumed_calls)
+        again = self.invoke(execute=lambda args: resumed_calls.append((args.start, args.end)) or 0,
+                            today=TEST_DAY + dt.timedelta(days=2))
+        self.assertEqual(again["status"], "complete")
+        self.assertEqual(len(resumed_calls), before)
 
     def test_remaining_budget_is_reserved_exactly_and_chunk_stop_is_resumable(self):
         job, _ = self.create_job()
