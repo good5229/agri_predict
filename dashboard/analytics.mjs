@@ -78,6 +78,31 @@ export function baselineComparison(rows) {
   const paired=rows.filter(r=>finite(r.predicted)&&finite(r.baseline));
   return {model:metrics(paired),baseline:metrics(paired.map(r=>({...r,predicted:r.baseline})))};
 }
+export function significanceSummary(meta, {product,model,cadence,horizon,start,end,asOf}) {
+  if(model==='baseline')return '직전가격 기준모델은 통계 검정의 비교 기준입니다.';
+  const report=meta.statisticalSignificance;
+  if(!report)return '통계적 유의성 검토 미완료: 현재 예측 파일과 일치하는 검정 결과가 없습니다.';
+  if(start!==meta.evaluationStart||end!==meta.evaluationEnd||asOf<meta.evaluationEnd)return '검정은 전체 평가기간을 대상으로 수행했습니다. 전체 기간을 선택하고 평가를 끝까지 진행하면 결과를 볼 수 있습니다.';
+  const pair=report.comparisons.filter(r=>r.productId===product&&r.modelId===model&&r.cadence===cadence&&r.horizon===Number(horizon));
+  const rows=['absolute_error','absolute_percentage_error'].map(loss=>pair.find(r=>r.loss===loss));
+  if(rows.some(r=>!r?.primary?.test||!r?.sensitivity?.test))return '이 조합의 통계 검정 결과가 없습니다.';
+  const classify=field=>{
+    const tests=rows.map(r=>r[field].test);
+    const signed=sign=>tests.map(t=>t.status==='available'&&finite(t.holmAdjustedPValue)&&t.holmAdjustedPValue<0.05&&sign*t.meanLossDifference>0);
+    const positive=signed(1),negative=signed(-1);
+    if(negative.every(Boolean))return 'improved';
+    if(negative.some(Boolean)&&positive.some(Boolean))return 'mixed';
+    if(positive.some(Boolean))return 'worsened';
+    if(tests.some(t=>t.status!=='available'))return 'unavailable';
+    return 'no_evidence';
+  };
+  const status=classify('primary'),sensitivityStatus=classify('sensitivity');
+  if(status==='unavailable')return `통계 판단 보류: 같은 날짜의 평가쌍 ${rows[0].primary.n}개. 표본 부족 또는 검정 분산 추정 불가로 유의성을 판단하지 않았습니다.`;
+  const p=test=>test.status!=='available'||!finite(test.holmAdjustedPValue)?'판단 불가':test.holmAdjustedPValue<0.0001?'<0.0001':test.holmAdjustedPValue.toFixed(4);
+  const headline={improved:'두 오차 지표에서 기준모델보다 작은 오차의 통계적 근거가 있습니다.',worsened:'하나 이상의 오차 지표에서 기준모델보다 큰 오차의 통계적 근거가 있습니다.',mixed:'오차 지표에 따라 유의한 개선과 악화가 엇갈려 개선으로 판정하지 않습니다.',no_evidence:'두 오차 지표 모두에서 개선됐다는 통계적 근거는 부족합니다.'}[status];
+  const sensitivity=status===sensitivityStatus?'28일 의존성 점검에서도 같은 판정입니다.':'28일 의존성 점검에서는 판정이 달라집니다.';
+  return `${headline} 전체기간 ${meta.evaluationStart}~${meta.evaluationEnd}, ${rows[0].primary.n}쌍 · Holm 보정 p: MAE ${p(rows[0].primary.test)}, MAPE ${p(rows[1].primary.test)}. ${sensitivity} 유의하지 않음은 동등성의 증거가 아닙니다. 사후 탐색 DM 검정이며 미래 성능을 보장하지 않습니다.`;
+}
 export function toCsv(rows, horizon, productName,model='baseline',cadence='none') {
   const cell = x => `"${String(x??'').replaceAll('"','""')}"`;
   const records = [['품목','대상일','예측기준일','참조관측일','예측거리_일','실제가격_원kg','예측가격_원kg','예측마이너스실제_원kg','모델','재학습주기','학습종료일','기준모델가격_원kg'],...rows.map(r=>[productName,r.date,r.origin,r.sourceDate,horizon,r.actual,r.predicted,finite(r.predicted)?r.predicted-r.actual:null,model,cadence,r.fitCutoff,r.baseline])];

@@ -1,4 +1,4 @@
-import {validateData,selectRows,metrics,aggregate,toCsv,finite,dayTime,validDate,scorePeriods,baselineComparison} from './analytics.mjs';
+import {validateData,selectRows,metrics,aggregate,toCsv,finite,dayTime,validDate,scorePeriods,baselineComparison,significanceSummary} from './analytics.mjs';
 const $ = id => document.getElementById(id);
 const fmt = (value,digits=1) => finite(value)?new Intl.NumberFormat('ko-KR',{maximumFractionDigits:digits,minimumFractionDigits:digits}).format(value):'—';
 const escape = text => String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -49,8 +49,9 @@ function render() {
   const c=$('baseline-comparison');
   const regressed=comparison.model.n>0&&(comparison.model.mae>comparison.baseline.mae||comparison.model.mape>comparison.baseline.mape);
   c.classList.toggle('warning',state.model!=='baseline'&&regressed);
-  c.textContent=state.model==='baseline'?'직전가격 유지 예측은 학습모델 성능을 판단하기 위한 비교 기준입니다.':comparison.model.n?`같은 ${comparison.model.n}일에서 기준모델 MAE ${fmt(comparison.baseline.mae)}원/kg, MAPE ${fmt(comparison.baseline.mape)}%. 선택 모델의 MAE는 ${fmt(Math.abs(comparison.model.mae-comparison.baseline.mae))}원/kg ${comparison.model.mae>comparison.baseline.mae?'더 큽니다':comparison.model.mae<comparison.baseline.mae?'더 작습니다':'차이가 없습니다'}. ${regressed?'MAE·MAPE 중 악화된 지표가 있어 성능 향상으로 판정하지 않습니다.':'통계적 개선 여부는 추가 검증이 필요합니다.'}`:'비교 가능한 학습모델 예측이 없습니다. 기준모델을 선택하면 확보된 관측자료를 확인할 수 있습니다.';
-  const limitations=[...(data.meta.limitations??[]),...(product.notes??[]),'깐마늘은 확인된 소분류, 나머지는 표준 중분류로 집계했습니다. 품종·등급·거래방식 등 공식 타깃과의 일치 여부는 추가 확인이 필요합니다.','주·월·분기에서는 실제·예측이 모두 있는 날짜의 가격을 단순 평균합니다. 비교 가능한 날짜가 없는 구간은 실제가격만 표시합니다. 지표와 다운로드는 항상 일별 평가값입니다.','2순·3순 중기 예측, 검증된 예상 가격 범위, 모델 간 DM 검정 결과는 아직 없습니다.'];
+  c.textContent=state.model==='baseline'?'직전가격 유지 예측은 학습모델 성능을 판단하기 위한 비교 기준입니다.':comparison.model.n?`같은 ${comparison.model.n}일에서 기준모델 MAE ${fmt(comparison.baseline.mae)}원/kg, MAPE ${fmt(comparison.baseline.mape)}%. 선택 모델의 MAE는 ${fmt(Math.abs(comparison.model.mae-comparison.baseline.mae))}원/kg ${comparison.model.mae>comparison.baseline.mae?'더 큽니다':comparison.model.mae<comparison.baseline.mae?'더 작습니다':'차이가 없습니다'}. ${regressed?'MAE·MAPE 중 악화된 지표가 있어 성능 향상으로 판정하지 않습니다.':'평균 오차와 별도로 아래 통계 검정 결과도 확인해 주세요.'}`:'비교 가능한 학습모델 예측이 없습니다. 기준모델을 선택하면 확보된 관측자료를 확인할 수 있습니다.';
+  $('significance-summary').textContent=significanceSummary(data.meta,state);
+  const limitations=[...(data.meta.limitations??[]),...(product.notes??[]),'깐마늘은 확인된 소분류, 나머지는 표준 중분류로 집계했습니다. 품종·등급·거래방식 등 공식 타깃과의 일치 여부는 추가 확인이 필요합니다.','주·월·분기에서는 실제·예측이 모두 있는 날짜의 가격을 단순 평균합니다. 비교 가능한 날짜가 없는 구간은 실제가격만 표시합니다. 지표와 다운로드는 항상 일별 평가값입니다.','2순·3순 중기 예측과 검증된 예상 가격 범위는 아직 없습니다.',data.meta.statisticalSignificance?'통계 검정은 관측된 공통 날짜의 예측을 비교한 사후·점근적 분석입니다. 800개 비교의 Holm 보정, 달력일 HAC 9일 및 28일 민감도 점검을 사용했습니다. 계절·구조 변화, 정보성 결측과 모델 추정 불확실성의 영향을 완전히 제거하지 못합니다.':'현재 예측에 대한 통계적 유의성 검토가 아직 완료되지 않았습니다.'];
   $('limitations').innerHTML=limitations.map(x=>`<li>${escape(x)}</li>`).join('');
   renderEvaluation();
   renderChart();

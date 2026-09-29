@@ -1,6 +1,7 @@
 # Project working rules
 
 - Read `docs/PLAN.md` for the agreed project scope. Do not reopen settled planning decisions as new user questions; distinguish implementation facts still to verify.
+- Every future model-training result must include completed statistical significance assessment before it is reported as a completed result: paired MAE/MAPE, Diebold–Mariano tests with temporal dependence and multiplicity handling, sample/coverage limits, and improvement/worsening/inconclusive conclusions. Freeze the comparison protocol before seeing test results; never equate insignificant differences with equivalence. If inference is not supportable, complete the assessment by stating the precise reason rather than promising to test later. Python analysis follows the user's Luna-author/Astra-review requirement.
 - Python data collection and validation code must be authored by **gpt-6-luna** and reviewed by **gpt-6-astra** before live API execution, as explicitly requested by the user. Fix blocking findings and re-review changed files before execution. Offline tests may run during development/review.
 - For reviews, follow `/Users/bellhundred/.codex/skills/open-code-review-delegate/SKILL.md`: OCR selects files and resolves rules; Astra reviews all selected files. No external LLM endpoint or credential configuration for OCR.
 - Never commit credentials, `.env`, collected databases, raw API response archives or generated run outputs. Do not print API keys or put them in process arguments. Read only task-relevant credential variables.
@@ -9,4 +10,3 @@
 - All data access must honor quotas, TLS verification and bounded retries. Support checkpoints and complete pagination; never mark an incomplete collection complete.
 - KREI is unavailable and excluded. KOSIS agricultural statistics remain allowed.
 - No model training, competition submission, remote repository creation or push without authorization for that stage. User has authorized local Git tracking and actual data collection/validation.
-

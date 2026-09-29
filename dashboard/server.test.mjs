@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDashboardServer} from './server.mjs';
+import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
 test('server exposes only named dashboard assets and gives actionable missing-data response',async(t)=>{
   const server=createDashboardServer('/nonexistent/dashboard-fixture.json');
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
@@ -11,4 +15,19 @@ test('server exposes only named dashboard assets and gives actionable missing-da
   const missing=await fetch(url+'/api/results');assert.equal(missing.status,503);assert.match((await missing.json()).message,/agri_data.dashboard/);
   assert.equal((await fetch(url,{method:'POST'})).status,405);
   assert.match(home.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+});
+test('server attaches significance only to the exact prediction file and matching evaluation range',async(t)=>{
+  const dir=await mkdtemp(path.join(tmpdir(),'agri-significance-'));
+  const file=path.join(dir,'dashboard.json'),sig=path.join(dir,'significance.json');
+  const payload=JSON.stringify({meta:{evaluationStart:'2017-01-01',evaluationEnd:'2018-12-20',statisticalSignificance:{stale:true}}});
+  await writeFile(file,payload);
+  const server=createDashboardServer(file);
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  t.after(async()=>{await new Promise(resolve=>server.close(resolve));await rm(dir,{recursive:true,force:true});});
+  const url=`http://127.0.0.1:${server.address().port}/api/results`;
+  let data=await(await fetch(url)).json();assert.equal(data.meta.statisticalSignificanceStatus,'missing');assert.equal(data.meta.statisticalSignificance,undefined);
+  const report={schemaVersion:1,protocol:{inputSha256:createHash('sha256').update(payload).digest('hex'),evaluationStart:'2017-01-01',evaluationEnd:'2018-12-20'},comparisons:[]};
+  await writeFile(sig,JSON.stringify(report));data=await(await fetch(url)).json();assert.equal(data.meta.statisticalSignificanceStatus,'verified');
+  await writeFile(file,payload+'\n');data=await(await fetch(url)).json();assert.equal(data.meta.statisticalSignificanceStatus,'mismatch');assert.equal(data.meta.statisticalSignificance,undefined);
+  await writeFile(file,payload);report.protocol.evaluationEnd='2018-12-19';await writeFile(sig,JSON.stringify(report));data=await(await fetch(url)).json();assert.equal(data.meta.statisticalSignificanceStatus,'mismatch');
 });

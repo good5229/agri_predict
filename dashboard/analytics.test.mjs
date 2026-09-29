@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {selectRows,metrics,aggregate,periodKey,validateData,toCsv,scorePeriods,baselineComparison} from './analytics.mjs';
+import {selectRows,metrics,aggregate,periodKey,validateData,toCsv,scorePeriods,baselineComparison,significanceSummary} from './analytics.mjs';
 test('scores use paired daily values, not displayed aggregated averages',()=>{
   const rows=[{date:'2015-01-01',actual:100,predicted:80},{date:'2015-01-02',actual:200,predicted:220},{date:'2015-01-03',actual:500,predicted:null}];
   assert.deepEqual(metrics(rows),{n:2,actualDays:3,mae:20,rmse:20,mape:15,mapeN:2});
@@ -44,4 +44,23 @@ test('invalid source dates, duplicate predictions and impossible dates fail clos
 test('CSV retains unpaired observed dates and provenance',()=>{
   const csv=toCsv([{date:'2015-01-03',actual:100,predicted:null,origin:null,sourceDate:null}],1,'배추');
   assert.ok(csv.startsWith('\uFEFF'));assert.match(csv,/참조관측일/);assert.match(csv,/"배추","2015-01-03","","","1","100","",""/);
+});
+test('significance is tied to the selected comparison and never leaks full-period inference into replay',()=>{
+  const meta={evaluationStart:'2017-01-01',evaluationEnd:'2018-12-20'};
+  const state={product:'cabbage',model:'hist_gb',cadence:'daily',horizon:1,start:meta.evaluationStart,end:meta.evaluationEnd,asOf:meta.evaluationEnd};
+  assert.match(significanceSummary(meta,state),/검토 미완료/);
+  const available={status:'available',n:602,holmAdjustedPValue:.01,meanLossDifference:-2};
+  meta.statisticalSignificance={comparisons:['absolute_error','absolute_percentage_error'].map(loss=>({productId:'cabbage',modelId:'hist_gb',cadence:'daily',horizon:1,loss,primary:{n:602,test:{...available}},sensitivity:{n:602,test:{...available}}}))};
+  assert.match(significanceSummary(meta,state),/작은 오차의 통계적 근거/);
+  assert.match(significanceSummary(meta,{...state,asOf:'2017-01-01'}),/끝까지 진행/);
+  assert.doesNotMatch(significanceSummary(meta,{...state,start:'2018-01-01'}),/0\.0100/);
+  assert.match(significanceSummary(meta,{...state,horizon:2}),/결과가 없습니다/);
+  meta.statisticalSignificance.comparisons[1].primary.test.holmAdjustedPValue=.9;
+  assert.match(significanceSummary(meta,state),/근거는 부족/);
+  meta.statisticalSignificance.comparisons[0].primary.test.meanLossDifference=2;
+  assert.match(significanceSummary(meta,state),/하나 이상의.*큰 오차/);
+  meta.statisticalSignificance.comparisons[1].primary.test.holmAdjustedPValue=.01;
+  assert.match(significanceSummary(meta,state),/개선과 악화가 엇갈려/);
+  meta.statisticalSignificance.comparisons[0].primary={n:29,test:{status:'unavailable_insufficient_pairs',n:29}};
+  assert.match(significanceSummary(meta,state),/판단 보류/);
 });
