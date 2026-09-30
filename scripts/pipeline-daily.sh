@@ -27,4 +27,11 @@ set -e
 if [ "$TRAINING_EXIT" -ne 0 ]; then
   exit "$TRAINING_EXIT"
 fi
+if [ "$#" -eq 0 ]; then
+  "$PROJECT/.venv/bin/python" -m agri_data.publish_dashboard
+  PUBLISH_EXIT=$?
+  if [ "$PUBLISH_EXIT" -ne 0 ]; then
+    exit "$PUBLISH_EXIT"
+  fi
+fi
 exit 0
