@@ -22,7 +22,6 @@ from . import collector, coverage, dashboard, experiments, modeling, significanc
 KST = ZoneInfo("Asia/Seoul")
 CONTEXT_START = dt.date(2014, 1, 1)
 EVALUATION_START = dt.date(2017, 1, 1)
-COLLECTOR_CUTOFF = dt.date(2026, 9, 27)
 DISK_FLOOR_BYTES = 5 * 1024**3
 BASELINE_DASHBOARD = Path("outputs/dashboard-expanded-20260929.json")
 EXPECTED_SCOPES = {(market, product) for market in dashboard.MARKETS
@@ -46,7 +45,7 @@ def _pipeline_fingerprint(source: dict[str, Any], provenance: list[dict[str, Any
     for name in ("train-daily.sh", "pipeline-daily.sh"):
         code_hashes[name] = _sha256((scripts_dir / name).read_bytes())
     protocol = {"contextStart": CONTEXT_START.isoformat(), "evaluationStart": EVALUATION_START.isoformat(),
-                "collectorCutoff": COLLECTOR_CUTOFF.isoformat(), "models": modeling.MODEL_IDS,
+                "collectorCutoff": source.get("meta", {}).get("contextEnd"), "models": modeling.MODEL_IDS,
                 "cadences": modeling.CADENCES, "horizons": dashboard.HORIZONS,
                 "modelParameters": {model_id: modeling._model_parameters(model_id) for model_id in modeling.MODEL_IDS},
                 "significanceFamilySize": significance.FAMILY_SIZE, "codeHashes": code_hashes,
@@ -119,7 +118,7 @@ def _read_status(path: Path) -> dict[str, Any]:
 
 def _coverage_query(db: sqlite3.Connection, start: dt.date, end: dt.date):
     sql = coverage.SELECTION_CTE + """
-    SELECT dataset,source_url,query_json,selected_state,selected_job_id,selected_epoch_id,
+    SELECT dataset,source_url,query_json,selected_state,latest_state,selected_job_id,selected_epoch_id,
            selected_response_at,selected_row_count,selected_previous
     FROM picked
     WHERE dataset='prices_origin'
@@ -324,6 +323,7 @@ def run_daily_training(*, root: str | Path = ".", db_path: str | Path = "data/ag
         db_file = project / db_file
     db_file = db_file.resolve()
     day = today or dt.datetime.now(KST).date()
+    collection_cap = day - dt.timedelta(days=1)
     run_id = run_id or (dt.datetime.now(KST).strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:8])
     run_dir = project / "outputs" / "daily" / day.isoformat() / run_id
     state_path = project / "runs" / "daily-training-status.json"
@@ -371,8 +371,8 @@ def run_daily_training(*, root: str | Path = ".", db_path: str | Path = "data/ag
             db = coverage.open_readonly(str(db_file))
             try:
                 db.execute("BEGIN")
-                selected_days, selection_provenance = _coverage_days(db, CONTEXT_START, COLLECTOR_CUTOFF)
-                cutoff, first_missing = contiguous_cutoff(selected_days, CONTEXT_START, COLLECTOR_CUTOFF)
+                selected_days, selection_provenance = _coverage_days(db, CONTEXT_START, collection_cap)
+                cutoff, first_missing = contiguous_cutoff(selected_days, CONTEXT_START, collection_cap)
                 if cutoff is None or cutoff < EVALUATION_START:
                     raise DailyTrainingError(f"no contiguous complete price prefix through evaluation start; first gap={first_missing}")
                 snapshot = (exporter or dashboard.build_dashboard)(

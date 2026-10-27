@@ -8,3 +8,24 @@
 @media(max-width:760px){.model-controls{padding:0 16px 18px;flex-wrap:wrap;gap:12px}.model-controls p{margin:0;flex-basis:100%;font-size:10px}.model-controls label{flex:1}.model-controls select{width:100%;min-width:0;font-size:12px}.replay{padding:12px 16px;gap:8px;flex-wrap:wrap}.replay-label{min-width:120px}.replay input{width:calc(100% - 140px)}.replay button{padding:5px 10px}.evaluation-panel{padding:20px 16px;margin-top:16px}.evaluation-panel th,.evaluation-panel td{padding:8px 6px;font-size:10px}.evaluation-panel select{min-width:90px;font-size:12px}.evaluation-panel>.muted{font-size:11px}.comparison-note{font-size:11px}}
 @media(min-width:761px){.site-header{height:70px}main{padding-top:26px}.intro{margin-bottom:20px}.intro h1{font-size:29px}.intro-copy{margin-top:7px}.research-note{padding:12px 18px;margin-bottom:18px}.products{margin-bottom:18px}.product{padding:10px 16px}.panel-heading{padding-top:18px;padding-bottom:14px}.model-controls{padding-bottom:14px}.filters{padding-bottom:14px}.replay{padding-top:10px;padding-bottom:10px}.metrics{padding-top:19px;padding-bottom:19px}.metric-value{font-size:27px}}
 .axis-text{fill:var(--muted)}
+.market-panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-top:22px;padding:24px 28px}
+.market-jump{display:inline-block;margin:-5px 0 16px;color:var(--green);font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.market-panel h2{font-size:18px}
+.market-period{border:1px solid #d5e2d8;background:var(--green-light);color:var(--green);border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;white-space:nowrap}
+.market-intro{margin:0 0 18px;max-width:850px}
+.market-status{margin:0;background:#f7f8f4;border:1px solid var(--line);border-radius:6px;padding:14px;color:var(--muted)}
+.market-summary{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:7px;margin:12px 0 16px;overflow:hidden}
+.market-summary>div{padding:13px 17px;border-right:1px solid var(--line)}
+.market-summary>div:last-child{border-right:0}
+.market-summary strong{display:block;font-size:18px;line-height:1.35;letter-spacing:-.035em;margin-top:3px;font-variant-numeric:tabular-nums}
+.market-conclusion{background:var(--green-light);color:var(--green);border-radius:6px;padding:12px 14px;margin:0 0 16px;font-weight:600}
+.market-conclusion.warning{background:#fbf2e5;color:#82561b}
+.market-conclusion.neutral{background:#f3f5f1;color:#44564b}
+.market-statistics{font-size:11px;color:var(--muted);margin:13px 0}
+.market-details{border-top:1px solid var(--line);padding-top:11px;color:var(--muted);font-size:11px}
+.market-details summary{cursor:pointer;color:var(--green);font-weight:700}
+.market-details p{max-width:900px;margin:9px 0 0}
+@media(max-width:760px){.market-panel{padding:20px 16px;margin-top:16px}.market-panel .table-heading{align-items:flex-start;gap:8px}.market-period{font-size:10px;white-space:normal;text-align:right}.market-intro{font-size:11px}.market-summary>div{padding:11px 10px}.market-summary strong{font-size:14px}.market-summary .metric-label{font-size:10px}.market-panel th,.market-panel td{font-size:10px;padding:8px 6px}.market-conclusion{font-size:12px}}
+.live-panel{background:var(--paper);border:1px solid #c9dbce;border-left:4px solid var(--green);border-radius:10px;margin-bottom:18px;padding:22px 26px}
+.live-panel h2{font-size:19px}.live-intro{margin:8px 0 15px}.live-context{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:5px 0 15px}.live-context strong{font-size:17px}.live-context span{font-size:12px;color:var(--muted)}.live-panel .table-scroll{max-height:275px;overflow:auto}.live-panel th,.live-panel td{padding:9px 12px}.live-panel td:last-child{font-weight:700;color:var(--green);font-variant-numeric:tabular-nums}.live-panel .table-footnote{margin:12px 0 0}
+@media(max-width:760px){.live-panel{padding:18px 14px}.live-panel .table-heading{align-items:flex-start;gap:8px}.live-panel h2{font-size:17px}.live-intro,.live-context span,.live-panel .table-footnote{font-size:11px}.live-panel th,.live-panel td{font-size:11px;padding:8px}}

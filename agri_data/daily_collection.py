@@ -22,7 +22,6 @@ from . import collector
 KST = ZoneInfo("Asia/Seoul")
 UTC = dt.timezone.utc
 DEFAULT_START = dt.date(2016, 1, 1)
-DEFAULT_CUTOFF = dt.date(2026, 9, 27)
 DAILY_HTTP_LIMIT = 9000
 EXECUTION_CHUNK = 250
 DISK_FLOOR_BYTES = 5 * 1024**3
@@ -33,7 +32,14 @@ class DailyRunError(RuntimeError):
     pass
 
 
-def year_ranges(start: dt.date = DEFAULT_START, cutoff: dt.date = DEFAULT_CUTOFF) -> list[tuple[dt.date, dt.date]]:
+def latest_collectible_day(today: dt.date | None = None) -> dt.date:
+    """The newest stable collection date is yesterday in Korea Standard Time."""
+    local_today = today or dt.datetime.now(KST).date()
+    return local_today - dt.timedelta(days=1)
+
+
+def year_ranges(start: dt.date = DEFAULT_START, cutoff: dt.date | None = None) -> list[tuple[dt.date, dt.date]]:
+    cutoff = cutoff or latest_collectible_day()
     if start > cutoff:
         return []
     result: list[tuple[dt.date, dt.date]] = []
@@ -156,6 +162,66 @@ def _plan(db: sqlite3.Connection, db_path: str, env_file: str,
     return plan
 
 
+def _completed_or_resumable_segments(db: sqlite3.Connection, db_path: str, env_file: str,
+                                    start: dt.date, end: dt.date) -> list[tuple[dt.date, dt.date]]:
+    """Continue from exact prior-year jobs without rescanning their completed prefix."""
+    if start > end:
+        return []
+    template = json.loads(_canonical_job_config(_arguments(db_path, env_file, start, start)))
+    template.pop("start", None)
+    template.pop("end", None)
+    rows = db.execute("SELECT DISTINCT config_json FROM jobs WHERE command='prices'").fetchall()
+    candidates: dict[dt.date, list[tuple[dt.date, str]]] = {}
+    for (config_text,) in rows:
+        try:
+            config = json.loads(config_text)
+            lo = dt.date.fromisoformat(config["start"])
+            hi = dt.date.fromisoformat(config["end"])
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        common = {key: value for key, value in config.items() if key not in ("start", "end")}
+        if common != template or lo.year != start.year or hi.year != start.year or lo < start or hi > end or lo > hi:
+            continue
+        state = _job_state(db, config_text)
+        if state != "pending":
+            candidates.setdefault(lo, []).append((hi, state))
+
+    ranges: list[tuple[dt.date, dt.date]] = []
+    cursor = start
+    while cursor <= end:
+        options = candidates.get(cursor, [])
+        # Prefer a completed segment to avoid revisiting it; otherwise resume the longest
+        # exact incomplete segment before opening a new suffix job.
+        completed = sorted((hi for hi, state in options if state == "complete"), reverse=True)
+        if completed:
+            cursor = max(cursor, completed[0] + dt.timedelta(days=1))
+            continue
+        resumable = sorted(((hi, state) for hi, state in options if state != "pending"), reverse=True)
+        if resumable:
+            hi, _ = resumable[0]
+            ranges.append((cursor, hi))
+            cursor = hi + dt.timedelta(days=1)
+            continue
+        ranges.append((cursor, end))
+        break
+    return ranges
+
+
+def _scheduled_ranges(db: sqlite3.Connection, db_path: str, env_file: str,
+                      cutoff: dt.date) -> list[tuple[dt.date, dt.date]]:
+    ranges: list[tuple[dt.date, dt.date]] = []
+    for start, end in ((dt.date(2016, 1, 1), dt.date(2016, 3, 31)),
+                       (dt.date(2016, 4, 1), dt.date(2016, 12, 31))):
+        capped_end = min(cutoff, end)
+        if start <= capped_end:
+            ranges.append((start, capped_end))
+    for year in range(2017, cutoff.year + 1):
+        start = dt.date(year, 1, 1)
+        end = min(cutoff, dt.date(year, 12, 31))
+        ranges.extend(_completed_or_resumable_segments(db, db_path, env_file, start, end))
+    return ranges
+
+
 def _failure_gate(db: sqlite3.Connection, day: dt.date, status: dict[str, Any]) -> tuple[str, str] | None:
     if status.get("date") == day.isoformat() and status.get("stopKind") in {
         "collector_error", "rate_limit", "auth_failure", "repeated_errors", "disk_low", "interrupted", "day_rollover"
@@ -192,19 +258,18 @@ def run_daily(*, db_path: str = "data/agri.sqlite", env_file: str,
     status_path = run_dir / "daily-collection-status.json"
     actual_kst_today = kst_today or (lambda: dt.datetime.now(KST).date())
     day = today or actual_kst_today()
-    ranges = [(dt.date(2016, 1, 1), dt.date(2016, 3, 31)),
-              (dt.date(2016, 4, 1), dt.date(2016, 12, 31)),
-              *year_ranges(dt.date(2017, 1, 1))]
+    cutoff = latest_collectible_day(day)
     if not db_file.is_file():
         raise DailyRunError(f"database does not exist: {db_file}")
     db = collector.open_db(str(db_file), readonly=True)
     try:
+        ranges = _scheduled_ranges(db, collector_db_path, env_path, cutoff)
         jobs = _plan(db, collector_db_path, env_path, ranges)
         attempt_count, rate_limits, api_errors, error_attempts = _today_attempts(db, day)
         remaining = max(0, daily_limit - attempt_count)
         status = _load_status(status_path)
         result: dict[str, Any] = {
-            "date": day.isoformat(), "cutoff": DEFAULT_CUTOFF.isoformat(),
+            "date": day.isoformat(), "cutoff": cutoff.isoformat(),
             "dailyHttpLimit": daily_limit, "httpAttemptsToday": attempt_count,
             "remainingHttpBudget": remaining, "ranges": jobs,
             "diskFreeBytes": disk_free(db_file.parent), "status": "planned",
@@ -240,6 +305,7 @@ def run_daily(*, db_path: str = "data/agri.sqlite", env_file: str,
                 _atomic_json(status_path, result)
                 return result
             count, _, _, _ = _today_attempts(db, day)
+            ranges = _scheduled_ranges(db, collector_db_path, env_path, cutoff)
             jobs = _plan(db, collector_db_path, env_path, ranges)
             result["ranges"] = jobs
             if count >= daily_limit:

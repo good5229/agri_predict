@@ -1,0 +1,263 @@
+{
+  "expected_listing_result_total": 119,
+  "expected_request_count": 12,
+  "page_chains": [
+    {
+      "chain_id": "jeju-weekly-2022",
+      "enumeration_complete": true,
+      "page_size_reported_by_ui": 12,
+      "pages": [
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2022",
+          "page_index": 1,
+          "request_id": "jeju-weekly-2022-p1",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=1&searchKeyword=2022"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2022",
+          "page_index": 2,
+          "request_id": "jeju-weekly-2022-p2",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2022"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2022",
+          "page_index": 3,
+          "request_id": "jeju-weekly-2022-p3",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2022"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2022",
+          "page_index": 4,
+          "request_id": "jeju-weekly-2022-p4",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2022"
+        },
+        {
+          "has_next": false,
+          "page_index": 5,
+          "request_id": "jeju-weekly-2022-p5",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2022"
+        }
+      ],
+      "query": "searchType=baTitle",
+      "query_term": "2022",
+      "results_reported_by_ui": 51
+    },
+    {
+      "chain_id": "jeju-weekly-2023",
+      "enumeration_complete": true,
+      "page_size_reported_by_ui": 12,
+      "pages": [
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2023",
+          "page_index": 1,
+          "request_id": "jeju-weekly-2023-p1",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=1&searchKeyword=2023"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2023",
+          "page_index": 2,
+          "request_id": "jeju-weekly-2023-p2",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2023"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2023",
+          "page_index": 3,
+          "request_id": "jeju-weekly-2023-p3",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2023"
+        },
+        {
+          "has_next": true,
+          "next_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2023",
+          "page_index": 4,
+          "request_id": "jeju-weekly-2023-p4",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2023"
+        },
+        {
+          "has_next": false,
+          "page_index": 5,
+          "request_id": "jeju-weekly-2023-p5",
+          "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2023"
+        }
+      ],
+      "query": "searchType=baTitle",
+      "query_term": "2023",
+      "results_reported_by_ui": 50
+    },
+    {
+      "chain_id": "mafra-cabbage-title-2022-2023",
+      "enumeration_complete": true,
+      "page_size_reported_by_ui": 10,
+      "pages": [
+        {
+          "has_next": true,
+          "next_url": "https://www.mafra.go.kr/bbs/home/792/artclList.do?rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=%EB%B0%B0%EC%B6%94&page=2",
+          "page_index": 1,
+          "request_id": "mafra-cabbage-title-2022-2023-p1",
+          "url": "https://www.mafra.go.kr/bbs/home/792/artclList.do?rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=%EB%B0%B0%EC%B6%94&page=1"
+        },
+        {
+          "has_next": false,
+          "page_index": 2,
+          "request_id": "mafra-cabbage-title-2022-2023-p2",
+          "url": "https://www.mafra.go.kr/bbs/home/792/artclList.do?rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=%EB%B0%B0%EC%B6%94&page=2"
+        }
+      ],
+      "query": "rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=배추",
+      "results_reported_by_ui": 18
+    }
+  ],
+  "protocol": "public-supply-document-capture-v1",
+  "requests": [
+    {
+      "expected_result_count": 51,
+      "id": "jeju-weekly-2022-p1",
+      "kind": "listing",
+      "page_index": 1,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=1&searchKeyword=2022",
+      "year": 2022
+    },
+    {
+      "expected_result_count": 51,
+      "id": "jeju-weekly-2022-p2",
+      "kind": "listing",
+      "page_index": 2,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2022",
+      "year": 2022
+    },
+    {
+      "expected_result_count": 51,
+      "id": "jeju-weekly-2022-p3",
+      "kind": "listing",
+      "page_index": 3,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2022",
+      "year": 2022
+    },
+    {
+      "expected_result_count": 51,
+      "id": "jeju-weekly-2022-p4",
+      "kind": "listing",
+      "page_index": 4,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2022",
+      "year": 2022
+    },
+    {
+      "expected_result_count": 51,
+      "id": "jeju-weekly-2022-p5",
+      "kind": "listing",
+      "page_index": 5,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2022",
+      "year": 2022
+    },
+    {
+      "expected_result_count": 50,
+      "id": "jeju-weekly-2023-p1",
+      "kind": "listing",
+      "page_index": 1,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=1&searchKeyword=2023",
+      "year": 2023
+    },
+    {
+      "expected_result_count": 50,
+      "id": "jeju-weekly-2023-p2",
+      "kind": "listing",
+      "page_index": 2,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=2&searchKeyword=2023",
+      "year": 2023
+    },
+    {
+      "expected_result_count": 50,
+      "id": "jeju-weekly-2023-p3",
+      "kind": "listing",
+      "page_index": 3,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=3&searchKeyword=2023",
+      "year": 2023
+    },
+    {
+      "expected_result_count": 50,
+      "id": "jeju-weekly-2023-p4",
+      "kind": "listing",
+      "page_index": 4,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=4&searchKeyword=2023",
+      "year": 2023
+    },
+    {
+      "expected_result_count": 50,
+      "id": "jeju-weekly-2023-p5",
+      "kind": "listing",
+      "page_index": 5,
+      "source": "jeju-agri-extension",
+      "topic": "weekly crop cultivation and management bulletin",
+      "url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do?searchType=baTitle&pageIndex=5&searchKeyword=2023",
+      "year": 2023
+    },
+    {
+      "expected_result_count": 18,
+      "id": "mafra-cabbage-title-2022-2023-p1",
+      "kind": "listing",
+      "query": {
+        "page": 1,
+        "rgsBgndeStr": "2022.01.01",
+        "rgsEnddeStr": "2023.12.31",
+        "srchColumn": "sj",
+        "srchWrd": "배추"
+      },
+      "source": "mafra",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/artclList.do?rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=%EB%B0%B0%EC%B6%94&page=1",
+      "year_end": 2023,
+      "year_start": 2022
+    },
+    {
+      "expected_result_count": 18,
+      "id": "mafra-cabbage-title-2022-2023-p2",
+      "kind": "listing",
+      "query": {
+        "page": 2,
+        "rgsBgndeStr": "2022.01.01",
+        "rgsEnddeStr": "2023.12.31",
+        "srchColumn": "sj",
+        "srchWrd": "배추"
+      },
+      "source": "mafra",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/artclList.do?rgsBgndeStr=2022.01.01&rgsEnddeStr=2023.12.31&srchColumn=sj&srchWrd=%EB%B0%B0%EC%B6%94&page=2",
+      "year_end": 2023,
+      "year_start": 2022
+    }
+  ],
+  "scope_description": "Explicit result pages for MAFRA cabbage-title search and Jeju weekly cultivation bulletins for 2022 and 2023.",
+  "scope_enumeration_complete": true,
+  "scope_id": "supply-document-listings-2022-2023",
+  "scope_limitations": [
+    "Completeness applies only to these three exact UI-verified queries, not all MAFRA supply announcements or all Jeju agricultural documents.",
+    "UI result counts and page chains were confirmed by the root agent on 2026-10-16.",
+    "The listings establish current retrievability only; historical first-publication time and historical document versions remain unproven.",
+    "KREI-origin or KREI-derived content must be excluded during offline candidate selection and item validation."
+  ],
+  "ui_verification_date": "2026-10-16"
+}

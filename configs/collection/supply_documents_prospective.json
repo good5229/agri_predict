@@ -1,0 +1,14 @@
+{
+  "protocol": "supply-documents-prospective-v1",
+  "scope": {
+    "window_days": 90,
+    "timezone": "Asia/Seoul",
+    "sources": [
+      {"id": "mafra-title", "base_url": "https://www.mafra.go.kr/bbs/home/792/artclList.do", "queries": ["배추", "무", "수급"], "page_size": 10},
+      {"id": "jeju-weekly", "base_url": "https://agri.jeju.go.kr/jadx/web/agriBbs/agriInfo/trendList.do", "search_type": "baTitle", "page_size": 12}
+    ]
+  },
+  "limits": {"max_requests": 300, "budget_seconds": 600, "min_interval_seconds": 1.0, "retries": 1, "timeout_seconds": 25, "max_bytes": 41943040},
+  "hosts": ["www.mafra.go.kr", "agri.jeju.go.kr"],
+  "data_root": "data/raw/supply_documents_prospective"
+}

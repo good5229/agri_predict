@@ -70,16 +70,42 @@ class DailyCollectionTests(unittest.TestCase):
         options.setdefault("kst_today", lambda: options["today"])
         return daily.run_daily(**options)
 
-    def test_schedule_keeps_partial_2016_and_fixed_cutoff(self):
+    def test_schedule_keeps_partial_2016_and_moves_with_latest_collectible_day(self):
+        cutoff = daily.latest_collectible_day(TEST_DAY)
         ranges = [(dt.date(2016, 1, 1), dt.date(2016, 3, 31)),
                   (dt.date(2016, 4, 1), dt.date(2016, 12, 31)),
-                  *daily.year_ranges(dt.date(2017, 1, 1))]
+                  *daily.year_ranges(dt.date(2017, 1, 1), cutoff)]
         self.assertEqual(ranges[0], (dt.date(2016, 1, 1), dt.date(2016, 3, 31)))
         self.assertEqual(ranges[1], (dt.date(2016, 4, 1), dt.date(2016, 12, 31)))
-        self.assertEqual(ranges[-1], (dt.date(2026, 1, 1), dt.date(2026, 9, 27)))
+        self.assertEqual(ranges[-1], (dt.date(2026, 1, 1), cutoff))
+        self.assertEqual(daily.latest_collectible_day(dt.date(2026, 10, 6)), dt.date(2026, 10, 5))
         self.assertEqual(daily.year_ranges(dt.date(2025, 12, 30), dt.date(2026, 1, 2)), [
             (dt.date(2025, 12, 30), dt.date(2025, 12, 31)),
             (dt.date(2026, 1, 1), dt.date(2026, 1, 2))])
+
+    def test_new_day_extends_completed_year_segment_without_replaying_it(self):
+        start, prior_end = dt.date(2026, 1, 1), dt.date(2026, 9, 27)
+        self.create_job(start, prior_end, "complete")
+        db = collector.open_db(str(self.db_path), readonly=True)
+        try:
+            ranges = daily._scheduled_ranges(db, "data/agri.sqlite", str(self.root / "test.env"),
+                                             prior_end + dt.timedelta(days=1))
+        finally:
+            db.close()
+        self.assertEqual([r for r in ranges if r[0].year == 2026],
+                         [(prior_end + dt.timedelta(days=1), prior_end + dt.timedelta(days=1))])
+
+    def test_new_day_resumes_old_partial_segment_before_scheduling_suffix(self):
+        start, prior_end = dt.date(2026, 1, 1), dt.date(2026, 9, 27)
+        self.create_job(start, prior_end, "incomplete")
+        db = collector.open_db(str(self.db_path), readonly=True)
+        try:
+            ranges = daily._scheduled_ranges(db, "data/agri.sqlite", str(self.root / "test.env"),
+                                             prior_end + dt.timedelta(days=1))
+        finally:
+            db.close()
+        self.assertEqual([r for r in ranges if r[0].year == 2026], [
+            (start, prior_end), (prior_end + dt.timedelta(days=1), prior_end + dt.timedelta(days=1))])
 
     def test_dry_run_is_readonly_and_shows_resume_budget(self):
         job, _ = self.create_job()
@@ -155,7 +181,7 @@ class DailyCollectionTests(unittest.TestCase):
         self.assertEqual(next_day["status"], "complete")
         before = len(resumed_calls)
         again = self.invoke(execute=lambda args: resumed_calls.append((args.start, args.end)) or 0,
-                            today=TEST_DAY + dt.timedelta(days=2))
+                            today=TEST_DAY + dt.timedelta(days=1))
         self.assertEqual(again["status"], "complete")
         self.assertEqual(len(resumed_calls), before)
 

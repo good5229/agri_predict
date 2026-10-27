@@ -29,3 +29,33 @@ htmlcov/
 .idea/
 .vscode/
 
+
+# Local data/model archives and temporary files
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.parquet
+*.arrow
+*.feather
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.safetensors
+*.npz
+*.npy
+*.log
+*.tmp
+*.bak
+*.zip
+*.tar
+*.tar.gz
+node_modules/
+credentials.json
+secrets.json
+
+# Keep only the final proposal; omit intermediate document copies
+/proposal/*.docx
+!/proposal/농산물가격예측_아이디어제안서_김종백.docx

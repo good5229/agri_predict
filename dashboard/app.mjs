@@ -2,7 +2,7 @@ import {validateData,selectRows,metrics,aggregate,toCsv,finite,dayTime,validDate
 const $ = id => document.getElementById(id);
 const fmt = (value,digits=1) => finite(value)?new Intl.NumberFormat('ko-KR',{maximumFractionDigits:digits,minimumFractionDigits:digits}).format(value):'—';
 const escape = text => String(text??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let data, rows=[], points=[];
+let data, marketData, liveData, rows=[], points=[];
 const state = {product:'cabbage',horizon:1,unit:'day',start:'',end:'',asOf:'',model:'ridge',cadence:'daily',evaluationUnit:'month'};
 const cadenceNames={daily:'매일',weekly:'매주',monthly:'매월',seasonal:'매계절'};
 const modelNames={baseline:'직전가격 기준모델',ridge:'Ridge 회귀',hist_gb:'부스팅 트리'};
@@ -14,8 +14,83 @@ function renderProducts() {
     return `<button class="product" type="button" data-product="${escape(p.id)}" aria-pressed="${p.id===state.product}"><span class="product-top">${escape(p.name)}<span class="product-index">0${i+1}</span></span><span class="product-bottom"><span>관측 ${count}일</span>${count<60?'<span class="sparse">자료 부족</span>':''}</span></button>`;
   }).join('');
 }
+function marketVerdict(status) {
+  return ({improved:'유의한 개선',worsened:'유의한 악화',mixed_evidence:'지표별 혼재',no_evidence:'개선 근거 불충분',inference_unavailable:'통계 판단 불가'})[status] ?? '판정 불가';
+}
+function fmtP(value) {
+  if (!finite(value)) return '검정 불가';
+  if (value<0.001) return '<0.001';
+  return fmt(value,3);
+}
+function renderMarket() {
+  if (!marketData) return;
+  const product=marketData.products.find(p=>p.id===state.product);
+  if (!product) return;
+  const n=product.coverage.commonTargets;
+  const control=product.conclusions.control?.status, persistence=product.conclusions.persistence?.status;
+  $('market-product').textContent=product.name;
+  $('market-count').textContent=`${fmt(n,0)}일`;
+  const overall=({improved:'두 기준 모두 개선',worsened:'두 기준 모두 악화',mixed_evidence:'비교별 결과 혼재',inference_unavailable:'판단 불가',no_evidence:'개선 입증 안 됨'})[product.conclusions.overall]??'판정 불가';
+  $('market-verdict').textContent=overall;
+  const conclusion=$('market-conclusion');
+  const negative=['worsened','mixed_evidence'].includes(product.conclusions.overall);
+  conclusion.className='market-conclusion';
+  if (negative) conclusion.classList.add('warning');
+  else if (product.conclusions.overall!=='improved') conclusion.classList.add('neutral');
+  conclusion.textContent=`두 시장 대조 모델 대비 ${marketVerdict(control)}, 직전가격 기준선 대비 ${marketVerdict(persistence)}. 유의하지 않은 차이는 동등하다는 뜻이 아닙니다.`;
+  const labels={candidate:'광주 정보 추가 모델',control:'두 시장 대조 모델',persistence:'직전가격 유지'};
+  $('market-rows').innerHTML=['candidate','control','persistence'].map(key=>`<tr><th scope="row">${labels[key]}</th><td>${fmt(product.metrics[key]?.MAE)}</td><td>${fmt(product.metrics[key]?.MAPE)}</td></tr>`).join('');
+  const comparisons=marketData.comparisons.filter(c=>c.productId===product.id);
+  $('market-statistics').textContent=comparisons.map(c=>`${c.comparator==='control'?'두 시장 대조':'직전가격'} ${c.loss}: 9일 보정 p=${fmtP(c.tests?.hac9?.holmAdjustedPValue)} · 28일 보정 p=${fmtP(c.tests?.hac28?.holmAdjustedPValue)}`).join(' / ')+'. 달력일 의존성을 고려한 DM 검정(HAC 9일, 28일 민감도), 각 20개 비교 Holm 보정 기준입니다.';
+  const reasons={no_target_actual:'목표일 실제 거래 없음',stale_or_missing_core_source:'두 시장 기준가격 없음·14일 초과',gwangju_missing_or_stale:'광주 기준가격 없음·14일 초과',insufficient_train:'학습 가능일 90일 미만'};
+  const exclusions=Object.entries(product.coverage.excludedByReason??{}).filter(([key])=>key!=='common_targets').map(([key,value])=>`${reasons[key]??key} ${fmt(value,0)}일`).join(', ');
+  $('market-coverage').textContent=`평가기간 ${product.coverage.evaluationStart} ~ ${product.coverage.evaluationEnd}, 전체 ${fmt(product.coverage.eligibleTargetDays,0)}일 중 공통 예측·정답 ${fmt(n,0)}일. 제외 사유별 수: ${exclusions||'없음'}. 세 방법은 이 공통 날짜에서만 비교했습니다.`;
+}
+function renderLive() {
+  if (!liveData) return;
+  const product=liveData.products.find(p=>p.productId===state.product);
+  if (!product) return;
+  const name=data?.products.find(p=>p.id===state.product)?.name??state.product;
+  const todayKst=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const oldIssue=liveData.issueDateKst!==todayKst;
+  $('live-issued').textContent=`${oldIssue?'이전 발행':'발행'} ${String(liveData.issueAtKst??'').replace('T',' ').slice(0,16)} KST`;
+  $('live-product').textContent=name;
+  const last=product.lastObservedPriceDate;
+  $('live-source').textContent=last?`마지막 실제 거래 ${last} · ${fmt(product.lastObservedPrice)}원/kg`:'사용 가능한 실제 거래가격 없음';
+  $('live-method').textContent=product.method==='ridge'?'Ridge 학습모델':product.method==='persistence_fallback'?'직전가격 기준선 사용':'예측 불가';
+  const forecasts=Array.isArray(product.predictions)?product.predictions:[];
+  $('live-rows').innerHTML=forecasts.length?forecasts.map(row=>`<tr><th scope="row">${escape(row.target)}</th><td>${fmt(row.horizonDays,0)}일 뒤</td><td>${fmt(row.predictedPrice)}원/kg</td></tr>`).join(''):'<tr><td colspan="3">이 품목은 발행할 예측이 없습니다.</td></tr>';
+  const freshness=({fresh:`마지막 거래 ${product.sourceAgeDays}일 전`,stale:'최근 14일 안의 거래가격 없음',no_observation:'사용 가능한 거래가격 없음'})[product.freshnessState]??'자료 상태 미상';
+  const fallback=product.method==='persistence_fallback'?'학습 표본이나 현재 특성이 부족해 직전가격 기준선을 사용했습니다.':'';
+  const guard=product.qualityGuard;
+  const guardedDates=guard?.enabled&&Array.isArray(guard.flaggedDates)?guard.flaggedDates.map(row=>row.date).join(', '):'';
+  const qualityNote=guard?.enabled?`무의 극단적 저거래량·가격 이탈 ${guard.flaggedDateCount??0}일${guardedDates?`(${guardedDates})`:''}은 예측 입력·학습에서 제외하고 원천 거래는 보존했습니다. 전체 정확도 개선은 아직 입증되지 않았습니다. `:'';
+  $('live-limitation').textContent=`${oldIssue?'오늘 새 예측은 아직 발행되지 않았습니다. ':''}완료 조회 기준 ${liveData.sourceCutoffDate??'—'} · ${freshness}. ${fallback}${qualityNote}과거 원천 수정본을 사용한 POC이며, 표준 데이터셋의 공식 가격이나 검증된 운영 성능은 아닙니다.`;
+}
+async function loadLive() {
+  $('live-status').hidden=false;$('live-results').hidden=true;
+  try {
+    const response=await fetch('/api/live-forecast',{signal:AbortSignal.timeout(30000)});
+    if (!response.ok) throw new Error('최신 예측 발행이 아직 완료되지 않았습니다.');
+    const report=await response.json();
+    if (report.schemaVersion!==1||!Array.isArray(report.products)||report.products.length!==5||!report.issueAtKst) throw new Error('최신 예측 결과의 형식이 올바르지 않습니다.');
+    liveData=report;$('live-status').hidden=true;$('live-results').hidden=false;renderLive();
+  } catch (error) { $('live-status').textContent=error.name==='TimeoutError'?'최신 예측 응답이 지연되고 있습니다.':'최신 예측 발행이 아직 완료되지 않았습니다.'; }
+}
+async function loadMarket() {
+  $('market-status').hidden=false;$('market-results').hidden=true;
+  try {
+    const response=await fetch('/api/market-experiment',{signal:AbortSignal.timeout(30000)});
+    if (!response.ok) throw new Error('추가 시장의 학습·통계 평가가 아직 완료되지 않았습니다.');
+    const report=await response.json();
+    if(report.schemaVersion!==1||report.status!=='complete'||report.products?.length!==5||report.comparisons?.length!==20) throw new Error('추가 시장 평가 결과의 형식이 올바르지 않습니다.');
+    marketData=report;$('market-status').hidden=true;$('market-results').hidden=false;renderMarket();
+    if (location.hash==='#market-title') $('market-title').scrollIntoView({block:'start'});
+  } catch (error) { $('market-status').textContent=error.name==='TimeoutError'?'추가 시장 결과 응답이 지연되고 있습니다.':'추가 시장의 학습·통계 평가가 아직 완료되지 않았습니다.'; }
+}
 function render() {
   if (!data) return;
+  renderMarket();renderLive();
   const invalid = !validDate(state.start)||!validDate(state.end)||state.start>state.end||state.start<data.meta.evaluationStart||state.end>data.meta.evaluationEnd;
   $('filter-error').hidden=!invalid;
   $('results').hidden=invalid;
@@ -161,7 +236,7 @@ async function load() {
       const a=document.createElement('a');a.href=parsed.href;a.target='_blank';a.rel='noreferrer noopener';a.textContent=`자료 출처 ${i+1} ↗`;$('sources').append(a);
     }
     $('updated').textContent=`데이터 생성 ${String(data.generatedAt??'').slice(0,10)} · 평가기간 ${data.meta.evaluationStart} ~ ${data.meta.evaluationEnd}`;
-    $('workspace').hidden=false;render();
+    $('workspace').hidden=false;render();loadMarket();loadLive();
   } catch(error) {$('error-message').textContent=error.name==='TimeoutError'?'응답이 지연되었습니다. 로컬 서버 상태를 확인한 뒤 다시 불러오세요.':error.message;$('error').hidden=false;}
   finally{$('loading').hidden=true;}
 }

@@ -1,0 +1,284 @@
+"""Frozen monthly bagged-forest versus same-row Ridge forecast pilot."""
+from __future__ import annotations
+import argparse, datetime as dt, hashlib, json, math
+from pathlib import Path
+from typing import Any
+
+from . import dashboard, modeling, state_space_pilot
+
+ROOT = Path(__file__).resolve().parents[1]
+PRICE_PATH = ROOT / "outputs/daily/2026-10-05/20261005T091737-a9f53eec/prices.json"
+DIRECT_PATH = ROOT / "outputs/experiments/direct-horizon-20261006/report.json"
+PRICE_SHA = "f525c10d79534896ff99784ffc1725fc7141ab8428781aba65181b73f4112cc8"
+DIRECT_SHA = "a1369ad7968f99e17ce4f3c0b94221871eee665c6216dbfe6522a9c6e96c4e67"
+PRODUCTS = tuple(dashboard.PRODUCTS)
+HORIZONS = (1, 5, 10)
+EVAL_START, EVAL_END = dt.date(2025, 9, 1), dt.date(2025, 11, 30)
+BANDWIDTHS = (9, 28)
+COMPARATORS = ("ablation", "direct", "persistence")
+LOSSES = ("AE", "APE")
+PLANNED = ((EVAL_END-EVAL_START).days+1)*len(PRODUCTS)*len(HORIZONS)
+FAMILY = len(PRODUCTS)*len(HORIZONS)*len(COMPARATORS)*len(LOSSES)
+PROTOCOL_ID = "bagged-forest-pilot-2026-10-08"
+FIT_DATES = (dt.date(2025,9,1),dt.date(2025,10,1),dt.date(2025,11,1))
+TRAIN_WINDOW_DAYS = 730
+MIN_TRAIN_DAYS = 90
+FOREST_PARAMS = {"n_estimators":100,"max_depth":8,"min_samples_leaf":10,"max_features":.7,"bootstrap":True,"random_state":42,"n_jobs":1}
+RIDGE_ALPHA = 10.0
+
+class PilotError(ValueError): pass
+
+def sha(b: bytes) -> str: return hashlib.sha256(b).hexdigest()
+def canon(x: Any) -> bytes: return (json.dumps(x, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)+"\n").encode()
+def finite(x): return isinstance(x,(int,float)) and not isinstance(x,bool) and math.isfinite(x)
+def positive(x): return finite(x) and x > 0
+def dates(start,end): return (start+dt.timedelta(days=i) for i in range((end-start).days+1))
+
+def product_series(doc):
+    observed=_price_series(doc)
+    return {pid:{day:pair[0] for day,pair in values.items()} for pid,values in observed.items()}
+
+def direct_map(report):
+    if report.get("protocol",{}).get("id")!="direct-horizon-ridge-2026-10-06": raise PilotError("direct_report_protocol_mismatch")
+    out={}
+    for r in report.get("pairedRows",[]):
+        try:
+            pid=r.get("product",r.get("productId")); target=dt.date.fromisoformat(r["target"]); h=r["horizon"]; pred=float(r["direct"])
+        except (KeyError,TypeError,ValueError): continue
+        if pid not in PRODUCTS or h not in HORIZONS or isinstance(h,bool) or not positive(pred): continue
+        origin=target-dt.timedelta(days=h)
+        if r.get("origin") and dt.date.fromisoformat(r["origin"])!=origin: raise PilotError("direct_origin_mismatch")
+        key=(pid,h,target)
+        if key in out: raise PilotError("duplicate_direct_prediction")
+        # Answer deliberately not accessed in forecast phase.
+        out[key]={"product":pid,"horizon":h,"target":target,"origin":origin,"direct":pred}
+    if not out: raise PilotError("direct_report_has_no_predictions")
+    return out
+
+def _price_series(prices):
+    if prices.get("schemaVersion")!=1: raise PilotError("unexpected_prices_schema")
+    out={}
+    for product in prices.get("products",[]):
+        pid=product.get("id")
+        if pid not in PRODUCTS or pid in out: raise PilotError("unknown_or_duplicate_product")
+        try: out[pid]=modeling._observed_series(product)
+        except (ValueError,TypeError,KeyError) as exc: raise PilotError("invalid_observed_series:"+pid) from exc
+    if set(out)!=set(PRODUCTS): raise PilotError("prices_must_contain_five_products")
+    return out
+
+def _train_month(series, horizon, fit_date):
+    import numpy as np
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import Ridge
+    from sklearn.preprocessing import StandardScaler
+    cache={}; rows=[]; missing=0; first=fit_date-dt.timedelta(days=TRAIN_WINDOW_DAYS)
+    for target in sorted(d for d in series if first<=d<fit_date):
+        origin=target-dt.timedelta(days=horizon)
+        if origin>=fit_date: continue
+        feat=modeling._feature_row(series,origin,target,horizon,cache)
+        if feat is None: missing+=1; continue
+        source_day,x=feat; actual=series[target][0]; source=series[source_day][0]
+        if not positive(actual) or not positive(source) or not all(math.isfinite(v) for v in x): missing+=1; continue
+        rows.append({"target":target,"origin":origin,"sourceDate":source_day,"sourcePrice":source,"features":x,"label":math.log(actual/source)})
+    target_days={r["target"] for r in rows}
+    audit={"fitDate":fit_date.isoformat(),"trainingWindow":[first.isoformat(),(fit_date-dt.timedelta(days=1)).isoformat(),"lower_and_upper_inclusive"],"trainingRows":len(rows),"distinctTrainingTargetDates":len(target_days),"featureRowsMissingOrInvalid":missing,"trainingTargetStart":min(target_days).isoformat() if target_days else None,"trainingTargetEnd":max(target_days).isoformat() if target_days else None,"sameTrainingRows":True}
+    if len(target_days)<MIN_TRAIN_DAYS:
+        return None,None,{**audit,"forestStatus":"insufficient_training","ridgeStatus":"insufficient_training"}
+    X=np.asarray([r["features"] for r in rows],dtype=float); y=np.asarray([r["label"] for r in rows],dtype=float)
+    if not np.isfinite(X).all() or not np.isfinite(y).all(): raise PilotError("nonfinite_training_matrix")
+    forest=ridge=scaler=None; forest_status=ridge_status="fitted"
+    try: forest=RandomForestRegressor(**FOREST_PARAMS).fit(X,y)
+    except Exception as exc: forest_status="fit_failed:"+type(exc).__name__
+    try:
+        scaler=StandardScaler().fit(X); scaler.scale_[scaler.scale_==0]=1
+        ridge=Ridge(alpha=RIDGE_ALPHA,fit_intercept=True).fit(scaler.transform(X),y)
+    except Exception as exc: ridge_status="fit_failed:"+type(exc).__name__; scaler=ridge=None
+    return (forest,(scaler,ridge)),rows,{**audit,"forestStatus":forest_status,"ridgeStatus":ridge_status}
+
+def build_forecast(report, prices, input_hashes):
+    series_by_product=_price_series(prices); direct=direct_map(report); fitted={}; training_audit={}
+    for fit_date in FIT_DATES:
+        for pid in PRODUCTS:
+            for h in HORIZONS:
+                try: fit,rows,meta=_train_month(series_by_product[pid],h,fit_date)
+                except Exception as exc: fit,rows,meta=(None,None,{"fitDate":fit_date.isoformat(),"status":"fit_failed:"+type(exc).__name__,"trainingRows":0,"distinctTrainingTargetDates":0,"sameTrainingRows":True})
+                fitted[(fit_date,pid,h)]=fit
+                training_audit[f"{fit_date.isoformat()}/{pid}/{h}"]=meta
+    forecasts=[]; feature_cache={pid:{} for pid in PRODUCTS}
+    for origin in dates(EVAL_START,EVAL_END):
+        for pid in PRODUCTS:
+            fit_date=origin.replace(day=1)
+            for h in HORIZONS:
+                target=origin+dt.timedelta(days=h); dr=direct.get((pid,h,target)); base=dr["direct"] if dr else None
+                row={"product":pid,"origin":origin.isoformat(),"target":target.isoformat(),"horizon":h,"candidate":None,"ablation":None,"direct":base,"persistence":None,"fitDate":fit_date.isoformat()}
+                if base is None:
+                    row.update(candidateFallbackReason="direct_prediction_missing",ablationFallbackReason="direct_prediction_missing",directMissingReason="direct_prediction_missing",persistenceMissingReason="direct_prediction_missing")
+                    forecasts.append(row); continue
+                model_pair=fitted[(fit_date,pid,h)]; fit_audit=training_audit[f"{fit_date.isoformat()}/{pid}/{h}"]
+                feature=modeling._feature_row(series_by_product[pid],origin,target,h,feature_cache[pid])
+                if feature is None:
+                    row["candidate"]=row["ablation"]=base
+                    row["candidateFallbackReason"]=row["ablationFallbackReason"]="feature_row_unavailable"
+                    row["persistenceMissingReason"]="feature_row_unavailable"
+                else:
+                    source_day,x=feature; source_price=series_by_product[pid][source_day][0]
+                    row.update(sourceDate=source_day.isoformat(),sourcePrice=source_price,persistence=source_price,persistenceSourceDate=source_day.isoformat())
+                    rf,linear=model_pair if model_pair is not None else (None,None)
+                    specs=(("candidate",rf,fit_audit.get("forestStatus")),("ablation",linear,fit_audit.get("ridgeStatus")))
+                    for mode,pair,status in specs:
+                        reason=None; pred=None
+                        if pair is None: reason=status or "model_unavailable"
+                        else:
+                            try:
+                                import numpy as np
+                                if mode=="candidate": log_ratio=float(pair.predict(np.asarray([x],dtype=float))[0])
+                                else:
+                                    scaler,ridge=pair
+                                    log_ratio=float(ridge.predict(scaler.transform(np.asarray([x],dtype=float)))[0])
+                                pred=source_price*math.exp(log_ratio)
+                                if not positive(pred): raise ValueError("invalid_prediction")
+                            except Exception as exc: reason="prediction_failed:"+type(exc).__name__; pred=None
+                        if reason: pred=base; row[mode+"FallbackReason"]=reason
+                        row[mode]=pred
+                forecasts.append(row)
+    if len(forecasts)!=PLANNED: raise PilotError("forecast_grid_size_mismatch")
+    return {"schemaVersion":1,"status":"answer_free_forecast_manifest","protocol":PROTOCOL,"inputs":input_hashes,"trainingAudit":training_audit,"forecasts":forecasts}
+
+PROTOCOL={"id":PROTOCOL_ID,"forecastPeriod":[EVAL_START.isoformat(),EVAL_END.isoformat()],"products":list(PRODUCTS),"horizons":list(HORIZONS),"plannedRows":PLANNED,"monthlyFitDates":[d.isoformat() for d in FIT_DATES],"trainingWindow":"last 730 calendar days with target in [fitDate-730, fitDate); training origin strictly before fit date","minimumDistinctTrainingTargetDates":MIN_TRAIN_DAYS,"features":"modeling._feature_row price, volume and calendar features","label":"log(target actual price / feature-row source price)","candidateEstimator":"RandomForestRegressor","candidateParameters":FOREST_PARAMS,"ablationEstimator":"same training rows and features: StandardScaler + Ridge(alpha=10, fit_intercept=True)","forecastTarget":"same source price times exp(predicted log price ratio)","comparators":list(COMPARATORS),"dm":{"losses":list(LOSSES),"bandwidths":list(BANDWIDTHS),"familySize":FAMILY,"holmAlpha":.05}}
+
+def validate_forecasts(doc):
+    rows=doc.get("forecasts"); expected={(p,o.isoformat(),h,(o+dt.timedelta(days=h)).isoformat()) for o in dates(EVAL_START,EVAL_END) for p in PRODUCTS for h in HORIZONS}; seen=set()
+    if not isinstance(rows,list) or len(rows)!=PLANNED: raise PilotError("forecast_grid_incomplete")
+    for r in rows:
+        if "actual" in r: raise PilotError("target_value_in_forecast_manifest")
+        try: key=(r["product"],r["origin"],r["horizon"],r["target"]); o=dt.date.fromisoformat(r["origin"]); t=dt.date.fromisoformat(r["target"])
+        except (KeyError,TypeError,ValueError): raise PilotError("invalid_forecast_identity")
+        if key in seen or key not in expected or t!=o+dt.timedelta(days=r["horizon"]): raise PilotError("forecast_grid_or_date_invalid")
+        seen.add(key)
+        for mode in ("candidate","ablation","direct","persistence"):
+            v=r.get(mode)
+            if v is not None and not positive(v): raise PilotError("invalid_forecast_value")
+        if r["candidate"] is None or r["ablation"] is None:
+            # Missing methods are permitted only when direct itself is unavailable; fallback otherwise equals direct.
+            if r["direct"] is not None and (r["candidate"]!=r["direct"] or r["ablation"]!=r["direct"]): raise PilotError("fallback_must_equal_direct")
+        if r["direct"] is None and any(r.get(m) is not None for m in ("candidate","ablation","persistence")):
+            raise PilotError("direct_report_pair_absent_all_methods_must_be_missing")
+    if seen!=expected: raise PilotError("forecast_grid_incomplete")
+    for r in rows:
+        for mode in ("candidate","ablation"):
+            reason=r.get(mode+"FallbackReason")
+            if reason and r.get(mode)!=r.get("direct") and r.get("direct") is not None: raise PilotError("fallback_must_equal_direct")
+
+def _dm(cell,candidate,benchmark,loss,bw):
+    diff={dt.date.fromisoformat(r["target"]):(abs(r["actual"]-r[candidate])-abs(r["actual"]-r[benchmark]) if loss=="AE" else 100*(abs(r["actual"]-r[candidate])-abs(r["actual"]-r[benchmark]))/r["actual"]) for r in cell}
+    return state_space_pilot._dm(diff,bw)
+
+def score(manifest, prices, *, manifest_bytes=None, prices_bytes=None, report=None, report_bytes=None):
+    if manifest.get("status")!="answer_free_forecast_manifest" or manifest.get("protocol")!=PROTOCOL: raise PilotError("manifest_protocol_mismatch")
+    if manifest_bytes is not None:
+        check=dict(manifest); stated=check.pop("manifestSha256",None)
+        if sha(canon(check))!=stated: raise PilotError("manifest_hash_mismatch")
+    if prices_bytes is not None and manifest.get("inputs",{}).get("prices")!=sha(prices_bytes): raise PilotError("price_hash_mismatch")
+    if report_bytes is not None and manifest.get("inputs",{}).get("directReport")!=sha(report_bytes): raise PilotError("direct_report_hash_mismatch")
+    series=product_series(prices); validate_forecasts(manifest)
+    if report is not None:
+        report_direct=direct_map(report)
+        for row in manifest["forecasts"]:
+            key=(row["product"],row["horizon"],dt.date.fromisoformat(row["target"]))
+            expected=report_direct.get(key)
+            if expected is None and row["direct"] is not None: raise PilotError("forecast_direct_missing_from_report")
+            if expected is not None and (row["direct"] is None or not math.isclose(row["direct"],expected["direct"],rel_tol=1e-12,abs_tol=1e-12)):
+                raise PilotError("forecast_direct_report_value_mismatch")
+    actual={}
+    for p,vals in series.items(): actual.update({(p,d):v for d,v in vals.items()})
+    # Reconcile target answers against the pinned direct report's paired rows when available.
+    report_actual={}
+    if report is not None:
+        for r in report.get("pairedRows",[]):
+            try: k=(r.get("product",r.get("productId")),dt.date.fromisoformat(r["target"])); y=float(r["actual"])
+            except (KeyError,TypeError,ValueError): continue
+            if k in report_actual and not math.isclose(y,report_actual[k],rel_tol=1e-10,abs_tol=1e-7): raise PilotError("direct_report_duplicate_actual_conflict")
+            report_actual[k]=y
+    observed_rows=[]; scored=[]; drop={"missingActual":0,"reportActualMissing":0,"reportActualMismatch":0}
+    report_keys=set()
+    models=("candidate","ablation","direct","persistence")
+    if report is not None:
+        for r in report.get("pairedRows",[]):
+            try: report_keys.add((r.get("product",r.get("productId")),dt.date.fromisoformat(r["target"])))
+            except (KeyError,TypeError,ValueError): continue
+    for f in manifest["forecasts"]:
+        k=(f["product"],dt.date.fromisoformat(f["target"])); y=actual.get(k)
+        if y is None: drop["missingActual"]+=1; continue
+        row={**f,"actual":y}; observed_rows.append(row)
+        if report is not None and k in report_keys:
+            ry=report_actual.get(k)
+            if ry is None: drop["reportActualMissing"]+=1; raise PilotError("report_pair_missing_actual")
+            if not math.isclose(y,ry,rel_tol=1e-10,abs_tol=1e-7): drop["reportActualMismatch"]+=1; raise PilotError("price_report_actual_mismatch")
+        elif report is not None: drop["reportActualMissing"]+=1
+        scored.append(row)
+    common=[r for r in scored if all(positive(r.get(m)) for m in models)]
+    def metrics(rows,m):
+        return {"n":len(rows),"mae":sum(abs(r["actual"]-r[m]) for r in rows)/len(rows) if rows else None,"mape":100*sum(abs(r["actual"]-r[m])/r["actual"] for r in rows)/len(rows) if rows else None}
+    cells={}; comparisons=[]
+    for p in PRODUCTS:
+        for h in HORIZONS:
+            cell=[r for r in common if r["product"]==p and r["horizon"]==h]; cells[f"{p}/{h}"]={"n":len(cell),"metrics":{m:metrics(cell,m) for m in models}}
+            for benchmark in COMPARATORS:
+                for loss in LOSSES:
+                    comparisons.append({"product":p,"horizon":h,"comparator":benchmark,"loss":loss,"n":len(cell),"dm":{str(b):_dm(cell,"candidate",benchmark,loss,b) for b in BANDWIDTHS}})
+    for b in BANDWIDTHS: state_space_pilot._holm([x["dm"][str(b)] for x in comparisons])
+    for item in comparisons:
+        item["conclusion"]={}
+        for b in BANDWIDTHS:
+            test=item["dm"][str(b)]; mean=test.get("meanLossDifference")
+            item["conclusion"][str(b)]=("inference_unavailable" if test.get("status")!="tested" else
+                "improvement" if test.get("holmSignificant") and mean<0 else
+                "worsening" if test.get("holmSignificant") and mean>0 else "inconclusive")
+    macro={m:{metric: (sum(cells[f"{p}/{h}"]["metrics"][m][metric] for p in PRODUCTS for h in HORIZONS)/15 if all(cells[f"{p}/{h}"]["metrics"][m][metric] is not None for p in PRODUCTS for h in HORIZONS) else None) for metric in ("mae","mape")} for m in models}
+    product_gate={}
+    for p in PRODUCTS:
+        product_gate[p]={"mapeDeltaPctPoints":sum(cells[f"{p}/{h}"]["metrics"]["candidate"]["mape"]-cells[f"{p}/{h}"]["metrics"]["direct"]["mape"] for h in HORIZONS)/3 if all(cells[f"{p}/{h}"]["metrics"]["candidate"]["mape"] is not None and cells[f"{p}/{h}"]["metrics"]["direct"]["mape"] is not None for h in HORIZONS) else None,"equalHorizonMaeWorseningPct":None}
+        vals=[(cells[f"{p}/{h}"]["metrics"]["candidate"]["mae"],cells[f"{p}/{h}"]["metrics"]["direct"]["mae"]) for h in HORIZONS]
+        if all(a is not None and b is not None for a,b in vals):
+            ca=sum(a for a,_ in vals); dr=sum(b for _,b in vals)
+            if dr>0: product_gate[p]["equalHorizonMaeWorseningPct"]=100*(ca-dr)/dr
+    coverage={m:sum(positive(r.get(m)) for r in manifest["forecasts"]) for m in models}
+    observed_coverage={m:sum(positive(r.get(m)) for r in observed_rows) for m in models}
+    coverage_fraction={m:coverage[m]/PLANNED for m in models}
+    observed_fraction={m:observed_coverage[m]/len(observed_rows) if observed_rows else None for m in models}
+    gates={"all15CellsCommonPairsAtLeast30":all(cells[f"{p}/{h}"]["n"]>=30 for p in PRODUCTS for h in HORIZONS),"candidateCoverageAtLeastDirect":coverage["candidate"]>=coverage["direct"],"candidateMacroMapeAtMost10Pct":macro["candidate"]["mape"] is not None and macro["candidate"]["mape"]<=10,"candidateImprovesVsAblationBy0_5pp":macro["candidate"]["mape"] is not None and macro["ablation"]["mape"] is not None and macro["candidate"]["mape"]<=macro["ablation"]["mape"]-.5,"candidateImprovesVsDirectBy0_5pp":macro["candidate"]["mape"] is not None and macro["direct"]["mape"] is not None and macro["candidate"]["mape"]<=macro["direct"]["mape"]-.5,"productMapeWorseningAtMost1pp":all(v["mapeDeltaPctPoints"] is not None and v["mapeDeltaPctPoints"]<=1 for v in product_gate.values()),"productMaeWorseningAtMost5Pct":all(v["equalHorizonMaeWorseningPct"] is not None and v["equalHorizonMaeWorseningPct"]<=5 for v in product_gate.values())}
+    gates["expand"]=all(gates.values())
+    fallbacks={m:{} for m in ("candidate","ablation")}
+    for row in manifest["forecasts"]:
+        for m in fallbacks:
+            reason=row.get(m+"FallbackReason")
+            if reason: fallbacks[m][reason]=fallbacks[m].get(reason,0)+1
+    return {"schemaVersion":1,"status":"scored","forecastManifestSha256":manifest.get("manifestSha256"),"pairedRows":len(common),"byProductHorizon":cells,"macroMetrics":macro,"productGates":product_gate,"gates":gates,"coverage":{"plannedRows":PLANNED,"forecastCoverage":coverage,"forecastCoverageFractionOfPlannedGrid":coverage_fraction,"forecastCoverageAmongTargetObservedRows":observed_coverage,"forecastCoverageFractionAmongTargetObservedRows":observed_fraction,"rowsWithActual":len(observed_rows),"scoreableCommonRows":len(common),"dropReasons":drop,"fallbackCounts":fallbacks},"dm":{"familySize":FAMILY,"comparisons":comparisons,"bandwidths":list(BANDWIDTHS)},"sampleLimits":{"cellsBelowThirty":[k for k,v in cells.items() if v["n"]<30],"dmInferenceMinPairs":30,"limitations":["retrospective repeated exploration","price snapshot publication timing is unknown","monthly fit dates are few and this is not independent final validation","model features may include origin-day observations, so no 10:00 issuance claim"]}}
+
+def _write_immutable(path,raw):
+    path=Path(path); path.parent.mkdir(parents=True,exist_ok=True)
+    with path.open("xb") as f: f.write(raw)
+
+def main(argv=None):
+    ap=argparse.ArgumentParser(); sp=ap.add_subparsers(dest="phase",required=True)
+    f=sp.add_parser("forecast"); f.add_argument("--prices",type=Path,default=PRICE_PATH); f.add_argument("--direct-report",type=Path,default=DIRECT_PATH); f.add_argument("--output",type=Path,required=True)
+    s=sp.add_parser("score"); s.add_argument("--manifest",type=Path,required=True); s.add_argument("--prices",type=Path,default=PRICE_PATH); s.add_argument("--direct-report",type=Path,default=DIRECT_PATH); s.add_argument("--output",type=Path,required=True)
+    a=ap.parse_args(argv)
+    try:
+        if a.phase=="forecast":
+            pb=a.prices.read_bytes(); rb=a.direct_report.read_bytes()
+            if sha(pb)!=PRICE_SHA: raise PilotError("pinned_price_hash_mismatch")
+            if sha(rb)!=DIRECT_SHA: raise PilotError("pinned_direct_report_hash_mismatch")
+            manifest=build_forecast(json.loads(rb),json.loads(pb),{"prices":sha(pb),"directReport":sha(rb),"code":sha(Path(__file__).read_bytes())})
+            manifest["manifestSha256"]=sha(canon(manifest)); _write_immutable(a.output,canon(manifest))
+        else:
+            mb=a.manifest.read_bytes(); pb=a.prices.read_bytes(); rb=a.direct_report.read_bytes()
+            if sha(pb)!=PRICE_SHA or sha(rb)!=DIRECT_SHA: raise PilotError("pinned_input_hash_mismatch")
+            m=json.loads(mb); report=json.loads(rb)
+            if m.get("inputs",{}).get("code")!=sha(Path(__file__).read_bytes()): raise PilotError("code_hash_mismatch")
+            result=score(m,json.loads(pb),manifest_bytes=mb,prices_bytes=pb,report=report,report_bytes=rb); _write_immutable(a.output,canon(result))
+        return 0
+    except (OSError,ValueError,KeyError,TypeError,json.JSONDecodeError) as exc:
+        ap.exit(2,f"bagged_forest_pilot: {exc}\n")
+
+if __name__=="__main__": raise SystemExit(main())

@@ -1,0 +1,446 @@
+{
+  "detail_page_count": 18,
+  "expected_request_count": 19,
+  "parent_decisions": [
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0102"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0103"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0104"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0105"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0106"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0107"
+    },
+    {
+      "fallback_candidates": 1,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0108"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0109"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0110"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0111"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0112"
+    },
+    {
+      "fallback_candidates": 4,
+      "pdf_candidates": 2,
+      "selected_count": 2,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0113"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0114"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0115"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0116"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0117"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0118"
+    },
+    {
+      "fallback_candidates": 2,
+      "pdf_candidates": 1,
+      "selected_count": 1,
+      "selection": "pdf",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0119"
+    }
+  ],
+  "protocol": "public-supply-document-capture-v1",
+  "rejected_candidates": [
+    {
+      "candidate_id": "mafra-cabbage-title-2022-2023-p1-link-0104-link-0010",
+      "reason": "filename_extension_not_visible"
+    },
+    {
+      "candidate_id": "mafra-cabbage-title-2022-2023-p1-link-0107-link-0020",
+      "reason": "filename_extension_not_visible"
+    },
+    {
+      "candidate_id": "mafra-cabbage-title-2022-2023-p1-link-0107-link-0021",
+      "reason": "filename_extension_not_visible"
+    }
+  ],
+  "requests": [
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "조간).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0102-link-0003",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0102",
+      "source_detail_sha256": "c83975b0c18881ed43f1df3f706fbbcd09ef2bd7dd04214b917f2a8f4b9b0610",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/568790/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "18 김장철 배추김치·김장 채소류 원산지 위반 132개소 적발 작성일/작성자 2023.12.13 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/573787/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "조간).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0103-link-0006",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0103",
+      "source_detail_sha256": "b519dab00450e1770c22ecea44704003c9c2d3c4fd9136ae66c9d1aa15b7a8c6",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/568124/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "17 김장철 배추김치 · 김장채소 양념류 원산지 표시 일제점검 실시 작성일/작성자 2023.11.01 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/572302/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "16시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0104-link-0007",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0104",
+      "source_detail_sha256": "3d5f5d9f08df82e5613f545667ec09df3b175748a182707e77eebf4df669a95a",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/568094/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "16 농식품부, 김장철 대비 배추 생산 현장 점검 작성일/작성자 2023.10.31 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/572223/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "16시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0105-link-0013",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0105",
+      "source_detail_sha256": "0429aa8f76f65418aa3d40455644f26a8be574bf0e93e469a02762d3302140f7",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/568047/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "15 농식품부, 김장철 대비 배추 생산 현장 점검 작성일/작성자 2023.10.27 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/572144/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0106-link-0016",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0106",
+      "source_detail_sha256": "21e2d45c8aa49d190f65d0f5bf2db512acf348dd848db86e7ea14d3c935ef337",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/567812/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "14 농식품부차관, 김장용 가을배추 생육 상황 점검 작성일/작성자 2023.10.13 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/571619/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0107-link-0019",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0107",
+      "source_detail_sha256": "d66677adbdf7127ba44f570de91c4ed9fc81d2cb5ecfa0d2498f21328fa14648",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/567418/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "13 농식품부, 추석 성수기 대비 배추·무 생산 현장 점검 작성일/작성자 2023.08.31 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/570630/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0108-link-0023",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0108",
+      "source_detail_sha256": "348cafbb64ef0eee07118f6453d6d4f9ec963af32968603932bde9c62f530178",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/567172/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "12 농식품부, 7~9월 배추 공급 부족에 대비하여 비축물량 확보, 부족 물량 공급 등 수급 관리에 만전을 기할 계획 작성일/작성자 2023.08.14 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/570153/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0109-link-0026",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0109",
+      "source_detail_sha256": "6aeb2a4c150be17450f17b29c06db9030a890de4235c5d63b271bf3979e0867a",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/567009/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "11 농식품부, 강원 여름배추·무 생산 현장 점검 작성일/작성자 2023.08.03 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/569874/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "시).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0110-link-0027",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0110",
+      "source_detail_sha256": "24e79cc25bda95bd0e1e42f536a7670756440c0ea5d1334ab04c4286259f087c",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/566861/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "10 농식품부, 강원도 여름배추·무 생산 현장 점검 작성일/작성자 2023.07.20 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/569556/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "조간).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p1-link-0111-link-0032",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p1-link-0111",
+      "source_detail_sha256": "2075377f51cfebeba5f95300ded1e65365c2140101bdb49874ff0e8c64a79340",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564632/artclView.do",
+      "source_list_page_sha256": "34135518966bfd6479c0655e2d06748220b988edb30c4bc8e45984790c3cc0c6",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p1",
+      "source_list_row_context": "9 김장철 배추김치·김장채소류 원산지 위반 어림없다! 작성일/작성자 2022.10.27 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563891/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "추가.pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0112-link-0035",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0112",
+      "source_detail_sha256": "f47934a6a7c297545efb0261104e5fba2e9b66e09db344f53b6abc631708f159",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564570/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "8 배추 가격 하락세, 김장철 공급은 전년보다 크게 증가 전망 작성일/작성자 2022.10.05 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563698/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "11시부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0113-link-0038",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0113",
+      "source_detail_sha256": "9847f579031a39aaccb5e4aed65b4b7b2d53304bc3fac53e3d9dd873fa73ed63",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564521/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "7 농축산물 가격은 전반적 하향세, 배추는 수급안정 위해 비축 등 공급 확대 작성일/작성자 2022.09.20 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563541/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "11시부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0113-link-0041",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0113",
+      "source_detail_sha256": "9847f579031a39aaccb5e4aed65b4b7b2d53304bc3fac53e3d9dd873fa73ed63",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564521/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "7 농축산물 가격은 전반적 하향세, 배추는 수급안정 위해 비축 등 공급 확대 작성일/작성자 2022.09.20 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563544/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "16시부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0114-link-0044",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0114",
+      "source_detail_sha256": "396e22edc1ac359aa67573ba3d6669313e5e05c487adb51326017e74447ea937",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564506/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "6 추석 이후 농축산물 가격 안정세, 배추는 10월부터 하향 전망 작성일/작성자 2022.09.15 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563496/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "17시부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0115-link-0047",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0115",
+      "source_detail_sha256": "ac7eaf596e35468df9c82ec5473b857a280fd4a8468b270b54863e1d3b1a1006",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564476/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "5 태풍 대비 무·배추 공급 확대, 사과·배 조기 수확 추진 작성일/작성자 2022.09.02 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563406/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "조간).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0116-link-0050",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0116",
+      "source_detail_sha256": "554c7bd2605da2a9c1f4535b5b8d220d8319a67d447a110095a05338247f028b",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564382/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "4 가을배추 농작물재해보험 도입으로 태풍 피해 대비 작성일/작성자 2022.08.06 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/563119/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "13시부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0117-link-0053",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0117",
+      "source_detail_sha256": "b328709bac7dcdaa9f84abcd963e30ec2c1702c8e1558e92f74e3966c0908590",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564321/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "3 정황근 농식품부 장관, 강원도 여름배추, 무 현장 점검 작성일/작성자 2022.07.13 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/562934/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "(1).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0118-link-0056",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0118",
+      "source_detail_sha256": "200b7768d47f0616afe136ed7740339ca3485111bbe8bb7972e6a4d09e03ba10",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/564189/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "2 수급불안 대비 배추·무·마늘·양파 3만 4천톤 비축 추진 작성일/작성자 2022.05.27 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/562535/download.do"
+    },
+    {
+      "filename_extension": "pdf",
+      "filename_hint": "30분부터).pdf",
+      "id": "mafra-cabbage-title-2022-2023-p2-link-0119-link-0059",
+      "kind": "document",
+      "source": "mafra",
+      "source_detail_request_id": "mafra-cabbage-title-2022-2023-p2-link-0119",
+      "source_detail_sha256": "9727af4367931b4ad5c5b927bf0dfe3f9302095ac69692a50cb6e7b4a53ad755",
+      "source_detail_url": "https://www.mafra.go.kr/bbs/home/792/563950/artclView.do",
+      "source_list_page_sha256": "8df2ad358034dde338c464561a78b83b95f37de7694f65592603b630f078b878",
+      "source_list_request_id": "mafra-cabbage-title-2022-2023-p2",
+      "source_list_row_context": "1 김종훈 농식품부 차관, 전남 해남 겨울 배추 현장 점검 작성일/작성자 2022.01.26 첨부파일",
+      "topic": "cabbage title search results",
+      "url": "https://www.mafra.go.kr/bbs/home/792/561806/download.do"
+    }
+  ],
+  "scope_description": "Attachment URLs selected from captured MAFRA detail HTML; PDF takes precedence when visible by filename extension, HWP/HWPX are retained only when no PDF candidate exists for that detail page.",
+  "scope_enumeration_complete": true,
+  "scope_id": "mafra-supply-document-attachments-from-captured-details",
+  "scope_limitations": [
+    "Only the MAFRA details present in the captured request checkpoint were examined.",
+    "No attachment outside the fixed HTTPS allowlist is included.",
+    "HTML detail pages remain preserved even when a PDF attachment is selected.",
+    "HWP/HWPX fallback originals are preserved but this extractor does not convert them to text.",
+    "No selected document is promoted to a model input."
+  ],
+  "source_candidates_file_sha256": "03d910de8cff7815f09a4f753f2b182fbb9399614a33f82178d74f70bf20ba63",
+  "source_checkpoint_manifest_sha256": "d46634a45db69ce21adb0a67a48d4620b027625eb686ffc26a7252f8b0644ba8"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "period-proxy-two-market-2026-10-15-v1",
+  "status": "frozen_before_model_results",
+  "source": "outputs/daily/2026-10-10/20261010T120014-01ac7655/prices.json",
+  "sourceSha256": "6ca1366d1dda618c96f48e62fea578193696b24dc893e68320bdeaae8e43e659",
+  "sourceMeaning": "revised Garak+Gangseo auction/kg signed-aggregate daily proxy; historical first-publication times unknown",
+  "crops": ["cabbage", "radish", "onion", "garlic"],
+  "excludedCrop": "pepper: current project scope defers new pepper experiments",
+  "target": "calendar dekad: days 1-10, 11-20, 21-month-end; arithmetic mean of actually observed positive daily proxy prices; at least 3 observed dates; no fill",
+  "issue": "one origin per completed dekad, 10:00 KST on the second calendar day after its end; inputs through completed dekad end only; 2nd/3rd subsequent dekads are distinct targets",
+  "split": {"trainThroughTargetEnd": "2021-12-31", "developmentTargets": ["2022-01-01", "2023-12-31"], "testTargets": ["2024-01-01", "2026-09-30"]},
+  "labelEligibility": "at each fit, include only target periods ending at least two calendar days before fit origin; input features at historical issue cutoff; no final-test outcomes in model or setting selection",
+  "methods": {
+    "B0a": "latest observed daily price at issue cutoff",
+    "B0b": "latest completed valid dekad mean at issue cutoff",
+    "B0c": "same calendar dekad of preceding year when valid",
+    "B1": "direct crop-by-horizon StandardScaler+Ridge on log(target/latest-price), using historical daily price/volume summaries, past valid dekad price, age, known target-calendar distance/season; alpha in [1,10,100] chosen by development MAPE",
+    "C1": "B1 procedure plus one signed shift-to-expensive-market indicator from prior and recent 14-day nonoverlapping windows, market support and completeness indicators; same alpha grid; missing market feature uses prespecified B1 forecast fallback"
+  },
+  "development": "rolling-origin predictions for 2022-2023; select one alpha per crop/horizon/method by development MAPE, tie lower alpha; strongest simple comparator per crop/horizon chosen among B0a/B0b/B0c only if >=30 unique target periods and >=90% of B0a-valid development keys, ranked by MAPE on the common keys with B0a, tie B0a then B0b then B0c; C1 attempted only if development B1 signed residual vs indicator has >=20 eligible unique target periods, positive Spearman >=0.1, and positive yearly correlations in 2022 and 2023",
+  "test": "2024-2026 target-period rolling-origin evaluation; fit each calendar quarter using all previously matured eligible labels, fixed selected alpha; compare on same issue/target keys and report method-specific issuance/target coverage",
+  "comparisonFamily": "4 crops x 2 horizons x 3 comparisons (B1 vs selected B0, C1 vs B1, C1 vs selected B0) x 2 losses (AE, APE) = 48; both unavailable/identical comparisons retained as inferentially unavailable",
+  "statistics": "paired MAE/MAPE and DM mean loss difference; target-dekad index Bartlett HAC lag 3 primary and 6 sensitivity; two-sided p, Holm 5% separately per bandwidth across 48; minimum 30 distinct paired target periods and positive HAC variance; zero/insufficient/fallback-only explicitly inference unavailable; no equivalence claim from non-significance",
+  "reporting": "observed difference, statistical superiority, and operational adoption are separate; improvement requires lower paired MAE and MAPE plus both primary Holm p<0.05 versus selected B0; C1 incremental improvement also requires both primary Holm p<0.05 versus B1; no operational adoption based on retrospective proxy; document all stop/fallback reasons, annual stability and coverage",
+  "limitations": "not official 2026 period definition, national target, contest score, or prospective performance; prior analyses have inspected 2024-2026, so final test is exploratory even though this protocol is frozen before this run"
+}

@@ -27,7 +27,18 @@
     <div id="loading" class="loading" role="status">수집된 가격과 예측 결과를 불러오고 있습니다…</div>
     <section id="error" class="error-box" hidden aria-live="polite"><h2>평가 데이터를 불러오지 못했습니다</h2><p id="error-message"></p><button id="retry" class="button">다시 불러오기</button></section>
     <div id="workspace" hidden>
+      <section class="live-panel" aria-labelledby="live-title">
+        <div class="table-heading"><div><p class="eyebrow">최신 자료로 발행한 POC</p><h2 id="live-title">앞으로 10일의 가격 예측</h2></div><span class="market-period" id="live-issued">발행 대기</span></div>
+        <p class="muted live-intro">가락·강서의 검증된 경매가격으로 발행한 연구용 예측입니다. 아래의 과거 성능 평가 및 본선 공식 예측과 구분됩니다.</p>
+        <p id="live-status" class="market-status" role="status">최신 발행 결과를 확인하고 있습니다…</p>
+        <div id="live-results" hidden>
+          <div class="live-context"><strong id="live-product"></strong><span id="live-source"></span><span id="live-method"></span></div>
+          <div class="table-scroll"><table><caption class="sr-only">선택 품목의 향후 10일 가격 예측</caption><thead><tr><th scope="col">대상일</th><th scope="col">예측거리</th><th scope="col">예상 가격 <small>원/kg</small></th></tr></thead><tbody id="live-rows"></tbody></table></div>
+          <p id="live-limitation" class="table-footnote"></p>
+        </div>
+      </section>
       <aside class="research-note"><span class="note-symbol" aria-hidden="true">i</span><div><strong>과거를 학습하고, 다음 날의 실제가격으로 평가합니다.</strong><p id="evaluation-summary">가락·강서 경매자료로 학습한 모델의 순차 평가입니다. 현재 수정본을 사용한 실험이며, 전국 대표가격·공모전 공식 성능과는 구분됩니다.</p></div><span class="note-chip">후향적 평가</span></aside>
+      <a class="market-jump" href="#market-title">광주 추가 시장 실험 결과 보기 ↓</a>
       <nav class="products" id="products" aria-label="조회 품목"></nav>
       <section class="analysis-panel" aria-labelledby="chart-title">
         <div class="panel-heading"><div><p class="eyebrow" id="scope-caption">가락 · 강서 / 경매 / 원·kg</p><h2 id="chart-title">배추 가격 흐름</h2></div><div class="model-pill"><span class="status-dot"></span><span id="model-badge">학습모델</span></div></div>
@@ -52,6 +63,18 @@
         <article class="table-panel"><div class="table-heading"><div><p class="eyebrow">날짜별로 비교하기</p><h2>최근 평가 결과</h2></div><span class="muted">선택 기간 중 최근 8건</span></div><div class="table-scroll"><table><caption class="sr-only">예측 기준일, 대상일, 실제가격, 예측가격 및 차이</caption><thead><tr><th scope="col">대상일<small>예측 기준일</small></th><th scope="col">실제가격</th><th scope="col">예측가격</th><th scope="col">차이<small>예측 − 실제</small></th></tr></thead><tbody id="prediction-rows"></tbody></table></div><p class="table-footnote">가격 단위는 원/kg입니다. 차이가 +이면 실제보다 높게 예측한 것입니다.</p></article>
       </section>
       <section class="evaluation-panel"><div class="table-heading"><div><p class="eyebrow">새 실제가격이 들어올 때마다 갱신</p><h2>기간별 예측 성능</h2></div><label>평가 집계<select id="evaluation-unit"><option value="day">일별</option><option value="week">주별</option><option value="month" selected>월별</option><option value="season">계절별</option></select></label></div><p class="muted">기간별로 일별 예측오차를 모아 계산합니다. 차트의 가격 평균과는 다른 성능 집계입니다. 겨울은 12~2월이며 평가기간에 포함된 날짜만 반영합니다.</p><div class="table-scroll"><table><thead><tr><th>평가기간</th><th>평가일 수</th><th>MAE <small>원/kg</small></th><th>MAPE <small>%</small></th><th>RMSE <small>원/kg</small></th></tr></thead><tbody id="evaluation-rows"></tbody></table></div><p class="table-footnote" id="evaluation-footnote"></p></section>
+      <section class="market-panel" aria-labelledby="market-title">
+        <div class="table-heading"><div><p class="eyebrow">수집자료 추가 실험</p><h2 id="market-title">광주 서부시장 정보가 예측에 도움이 됐나요?</h2></div><span class="market-period">2019–2020 · 1일 뒤 예측</span></div>
+        <p class="muted market-intro">위의 최신 가락·강서 예측과 별개로, 같은 목표가격에 광주 서부시장의 과거 거래 정보를 추가한 모델을 같은 날짜의 두 시장 대조 모델·직전가격 기준선과 비교합니다.</p>
+        <p id="market-status" class="market-status" role="status">추가 시장 학습·평가 결과를 확인하고 있습니다…</p>
+        <div id="market-results" hidden>
+          <div class="market-summary"><div><span class="metric-label">선택 품목</span><strong id="market-product"></strong></div><div><span class="metric-label">공통 비교 날짜</span><strong id="market-count"></strong></div><div><span class="metric-label">종합 판정</span><strong id="market-verdict"></strong></div></div>
+          <p id="market-conclusion" class="market-conclusion"></p>
+          <div class="table-scroll"><table><caption class="sr-only">선택 품목의 추가 시장 모델과 두 기준선의 동일 날짜 MAE·MAPE</caption><thead><tr><th scope="col">같은 날짜의 예측</th><th scope="col">MAE <small>원/kg</small></th><th scope="col">MAPE <small>%</small></th></tr></thead><tbody id="market-rows"></tbody></table></div>
+          <p id="market-statistics" class="market-statistics"></p>
+          <details class="market-details"><summary>표본 범위와 해석 시 주의사항</summary><p id="market-coverage"></p><p>2017–2018년 자료로 시작해 2019–2020년을 날짜 순서대로 평가했습니다. 원천의 최초 공개시각을 확인하지 못해 후향적 비교이며, 오전 9시 실시간 예측 성능을 뜻하지 않습니다. 생산·수입·기상 원자료는 당시 이용 가능시각이 검증되지 않아 이번 모델 입력에서 제외했습니다.</p></details>
+        </div>
+      </section>
       <footer class="footer"><span>농산물 가격예측 연구 · 전국 대표가격이 아닌 수집된 두 시장의 잠정 집계</span><span id="updated"></span></footer>
     </div>
   </main>
